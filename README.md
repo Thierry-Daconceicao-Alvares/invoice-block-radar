@@ -14,7 +14,10 @@ multinational in coatings and paints (BPI Challenge 2019, 251,734 order lines,
 > The API runs on a free host that sleeps when idle: the first request after a quiet
 > period takes about a minute. The overview and evidence pages do not need it.
 
-![Overview: the problem in figures and the animated process map](docs/images/app-overview.png)
+![A one-minute tour of the interface](docs/media/invoice-block-radar-demo.gif)
+
+*A one-minute tour ([MP4](docs/media/invoice-block-radar-demo.mp4)), recorded by
+[scripts/record_demo.py](scripts/record_demo.py).*
 
 ## The problem
 
@@ -32,6 +35,8 @@ What the log shows:
 | Blocks released by hand | **73%**, by just **10 people** |
 | Blocks that ended with **nothing corrected**: a check, then a release | **65%** |
 | Extra delay before payment, compared within the same vendor | 3 to 4 days |
+
+![Overview: the problem in figures and the animated process map](docs/images/app-overview.png)
 
 Most blocks are false alarms that still cost a person's time. The real problems (an
 order or an invoice that had to be corrected) are about 6% of blocks.
@@ -184,6 +189,7 @@ radar/triage.py          triage of blocked invoices, the rejected model kept as 
 radar/detective.py       rules, case file, writers (Mistral, replay, template), checks
 radar/queue.py           the detective on Sep-Oct 2018 and the queue of 15 Oct 2018
 radar/export.py          small extracts served by the API
+scripts/record_demo.py   the captioned demo video (Playwright + ffmpeg)
 api/main.py              FastAPI service
 web/                     Next.js interface
 docs/results/            every score, as JSON
