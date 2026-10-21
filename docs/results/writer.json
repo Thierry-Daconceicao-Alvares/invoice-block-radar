@@ -3,7 +3,7 @@
   "notes": 30,
   "passed_all_checks": 30,
   "failures": [],
-  "median_seconds": 2.02,
+  "median_seconds": 2.81,
   "checks": [
     "no number outside the facts",
     "vendor email present exactly when the rules ask for one",
