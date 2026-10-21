@@ -16,7 +16,7 @@ def test_past_rate_stays_near_average_without_history():
         {
             f"{who}_{kind}": [0, 100]
             for who in forecast.HISTORY
-            for kind in ("paid_before", "blocked_before")
+            for kind in ("known_before", "blocked_before")
         }
     )
     frame["vendor_blocked_before"] = [0, 90]
@@ -26,11 +26,16 @@ def test_past_rate_stays_near_average_without_history():
 
 
 def test_unknown_categories_become_missing():
-    train = pd.DataFrame({c: ["a"] for c in forecast.FEATURES})
-    later = pd.DataFrame({c: ["b"] for c in forecast.FEATURES})
-    for frame in (train, later):
-        for column in forecast.NUMERIC:
-            frame[column] = 1.0
-    _, categories = forecast.prepare(train)
-    x, _ = forecast.prepare(later, categories)
-    assert x["sub_spend_area"].isna().all()
+    booster = forecast.Booster(forecast.FACTS)
+    booster.categories = {c: ["a"] for c in forecast.CATEGORICAL}
+    later = pd.DataFrame({c: ["b"] for c in forecast.CATEGORICAL} | {c: [1.0] for c in forecast.FACTS})
+    assert booster.matrix(later)["sub_spend_area"].isna().all()
+
+
+def test_training_only_uses_lines_whose_window_had_closed():
+    moment = pd.Timestamp("2018-06-01", tz="UTC")
+    lines = pd.DataFrame(
+        {"first_invoice_document_at": pd.to_datetime(["2018-03-01", "2018-04-10"], utc=True)}
+    )
+    kept = forecast.known_by(lines, moment)
+    assert list(kept.index) == [0]  # 10 April + 60 days is after 1 June

@@ -1,7 +1,6 @@
 # What the API needs at run time (the full list, for training, is requirements.txt)
 fastapi==0.156.5
 httpx==0.28.1
-lightgbm==4.7.0
 numpy==2.5.3
 pandas==3.0.5
 pydantic==2.13.5

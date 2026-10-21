@@ -1,6 +1,9 @@
 {
- "prior": 0.27320689630182554,
+ "method": "vendor x company x match type, live rate",
+ "rate": "pair_past_rate",
+ "prior": 0.2524352730069213,
  "prior_weight": 10,
+ "reference_rate": 0.2468678459937565,
  "categories": {
   "item_category": [
    "3-way match, invoice after GR",
@@ -18,8 +21,7 @@
    "Standard PO"
   ],
   "company": [
-   "companyID_0000",
-   "companyID_0001"
+   "companyID_0000"
   ],
   "spend_area": [
    "",
@@ -113,7 +115,6 @@
    "Media",
    "Metal Containers & Lids < 30L",
    "Mixing Machines",
-   "Monomers - Hydroxy",
    "Monomers - Styrene",
    "Neutralisation Agents",
    "Office Supplies",
@@ -125,7 +126,6 @@
    "Packaging - Other",
    "Pallets",
    "Paperboard",
-   "Pigments - Other",
    "Plastic Containers & Lids < 30L",
    "Plastic Film",
    "Plasticizers",
@@ -134,7 +134,6 @@
    "Polyester Resins - Liquid",
    "Polyurethane Resins",
    "Polyvinyl Acetates",
-   "Polyvinyl Alcohols",
    "Process Automation & Instrumentation",
    "Products for Resale",
    "Public Relations",
@@ -176,29 +175,5 @@
    "OTHER",
    "PR"
   ]
- },
- "best_iteration": 151,
- "features": [
-  "item_category",
-  "item_type",
-  "document_type",
-  "company",
-  "spend_area",
-  "sub_spend_area",
-  "spend_classification",
-  "gr_based_iv",
-  "goods_receipt_expected",
-  "from_requisition",
-  "lines_in_document",
-  "po_value_eur",
-  "created_weekday",
-  "vendor_paid_before",
-  "vendor_past_rate",
-  "buyer_paid_before",
-  "buyer_past_rate",
-  "area_paid_before",
-  "area_past_rate",
-  "pair_paid_before",
-  "pair_past_rate"
- ]
+ }
 }

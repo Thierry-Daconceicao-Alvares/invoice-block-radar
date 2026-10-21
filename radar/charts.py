@@ -1,4 +1,4 @@
-"""The two charts every model in the project is judged by."""
+"""The capture chart every method in the project is judged by."""
 
 from __future__ import annotations
 
@@ -9,8 +9,6 @@ import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import numpy as np
-import pandas as pd
-import shap
 
 BLUE = "#2457a6"
 RED = "#c2462e"
@@ -19,6 +17,7 @@ STYLES = [
     dict(color="#a86a00", lw=1.8),
     dict(color="#a86a00", lw=1.4, ls="-."),
     dict(color="#7d8b99", lw=1.6, ls="--"),
+    dict(color="#4f8a6e", lw=1.4, ls="--"),
     dict(color="#b9c2cc", lw=1.4, ls=":"),
 ]
 
@@ -65,23 +64,3 @@ def capture_chart(
     fig.tight_layout()
     fig.savefig(target)
     plt.close(fig)
-
-
-def drivers_chart(model, x: pd.DataFrame, labels: dict[str, str], target: Path, *, seed: int) -> dict:
-    """Mean absolute SHAP value per input: what the model relies on most."""
-    sample = x.sample(n=min(5000, len(x)), random_state=seed)
-    values = shap.TreeExplainer(model).shap_values(sample)
-    if isinstance(values, list):
-        values = values[1]
-    importance = pd.Series(np.abs(values).mean(axis=0), index=sample.columns).sort_values()
-    shown = importance[importance > 0.001]
-    fig, ax = plt.subplots(figsize=(8.5, 5.2), dpi=150)
-    ax.barh([labels.get(c, c) for c in shown.index], shown.values, color=BLUE)
-    ax.set_xlabel("Average effect on the predicted risk (mean |SHAP|, log-odds)")
-    ax.set_title("What the model looks at", loc="left", fontsize=11)
-    ax.grid(axis="x", alpha=0.25)
-    ax.spines[["top", "right"]].set_visible(False)
-    fig.tight_layout()
-    fig.savefig(target)
-    plt.close(fig)
-    return {k: round(float(v), 4) for k, v in importance.sort_values(ascending=False).items()}
