@@ -1,6 +1,7 @@
 -- One row per blocked item: why the block was released and how long it took.
 -- The log never records the reason for a block, so the cause is read from what
--- happened between the invoice and the first release, in this order of priority:
+-- happened between the invoice and the first release (a change made before the
+-- invoice arrived is not a correction of the block), in this order of priority:
 --   waiting_for_goods  the goods receipt was recorded after the invoice
 --   order_corrected    the buyer changed the price or quantity of the order
 --   invoice_corrected  the invoice was cancelled or a credit note was issued
@@ -22,10 +23,12 @@ signals as (
         ) as goods_arrived_after_invoice,
         bool_or(
             events.activity in ('Change Price', 'Change Quantity')
+            and events.occurred_at >= blocked.first_invoice_document_at
             and events.occurred_at <= blocked.first_unblock_at
         ) as order_changed,
         bool_or(
             events.activity in ('Cancel Invoice Receipt', 'Vendor creates debit memo')
+            and events.occurred_at >= blocked.first_invoice_document_at
             and events.occurred_at <= blocked.first_unblock_at
         ) as invoice_changed,
         bool_or(

@@ -1,0 +1,18 @@
+version: 2
+
+models:
+  - name: detective_cases
+    description: >
+      One row per payment block with the facts known when the invoice blocked,
+      and how the block really ended (for evaluation only).
+    config:
+      materialized: table
+    columns:
+      - name: case_id
+        data_tests: [unique, not_null]
+      - name: blocked_at
+        data_tests: [not_null]
+      - name: goods_received
+        data_tests: [not_null]
+      - name: needs_correction
+        data_tests: [not_null]
