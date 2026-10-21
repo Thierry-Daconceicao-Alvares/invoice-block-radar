@@ -8,6 +8,7 @@ export default async function OverviewPage() {
   const released = overview.release_reasons.find((r) => r.release_reason === "released_after_review")!;
   const totalBlocks = overview.release_reasons.reduce((s, r) => s + r.blocks, 0);
   const forecast = evaluation.forecast.test.scores[evaluation.forecast.chosen];
+  const random = evaluation.forecast.test.scores["random pick"];
 
   return (
     <>
@@ -84,10 +85,11 @@ export default async function OverviewPage() {
         <p>
           <b>Before:</b> when an order line is created, it is scored with how earlier invoices of the same vendor went,
           counting only outcomes known that day. On September and October orders, checking the riskiest 20% catches{" "}
-          <b>{fmt.pct(forecast.share_of_blocks_caught)}</b> of future blocks, twice what a random check finds. This
-          simple rate beat two machine-learning models on every month it was compared on.{" "}
+          <b>{fmt.pct(forecast.share_of_blocks_caught)}</b> of future blocks, against{" "}
+          {fmt.pct(random.share_of_blocks_caught)} for a random check. This simple rate beat two machine-learning
+          models on every month it was compared on.{" "}
           <b>After:</b> when an invoice blocks anyway, the detective reads the case, says what is likely wrong and who
-          should act, and drafts the vendor email. Open the <a href="/queue">blocked queue</a> or try the{" "}
+          should act, and drafts a vendor email the buyer sends only if the check confirms a mismatch. Open the <a href="/queue">blocked queue</a> or try the{" "}
           <a href="/radar">order radar</a>.
         </p>
       </section>

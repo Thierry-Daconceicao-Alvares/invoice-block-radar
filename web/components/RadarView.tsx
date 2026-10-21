@@ -16,7 +16,6 @@ const FIELDS = [
   "spend_classification", "gr_based_iv", "goods_receipt_expected", "created_by", "from_requisition",
   "lines_in_document", "po_value_eur", "created_weekday",
 ];
-const DAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
 
 function pick(example: Line): Line {
   return Object.fromEntries(FIELDS.map((f) => [f, example[f] ?? null]));
@@ -86,7 +85,7 @@ export default function RadarView() {
       <form className="panel" onSubmit={(e) => e.preventDefault()}>
         <div>
           <h2>The order line</h2>
-          <p className="sub">Start from a real line created in September or October 2018, then change anything.</p>
+          <p className="sub">Start from a real line created in September or October 2018, then change it.</p>
         </div>
         <label>
           Real order line
@@ -109,8 +108,16 @@ export default function RadarView() {
         </label>
         <div className="form-grid">
           <label>
-            Vendor
+            Vendor <span className="tag">moves the score</span>
             <input id="vendor" list="vendors" value={String(line.vendor ?? "")} onChange={(e) => set("vendor", e.target.value)} />
+          </label>
+          <label>
+            Company <span className="tag">moves the score</span>
+            {select("company", options.categories.company)}
+          </label>
+          <label>
+            Match type <span className="tag">moves the score</span>
+            {select("item_category", options.categories.item_category)}
           </label>
           <label>
             Buyer
@@ -120,41 +127,12 @@ export default function RadarView() {
             What is bought
             {select("sub_spend_area", options.categories.sub_spend_area)}
           </label>
-          <label>
-            Spend area
-            {select("spend_area", options.categories.spend_area)}
-          </label>
-          <label>
-            Match type
-            {select("item_category", options.categories.item_category)}
-          </label>
-          <label>
-            Company
-            {select("company", options.categories.company)}
-          </label>
-          <label>
-            Line value (EUR)
-            <input id="value" type="number" min={0} value={Number(line.po_value_eur ?? 0)} onChange={(e) => set("po_value_eur", Number(e.target.value))} />
-          </label>
-          <label>
-            Lines in the purchase order
-            <input id="lines" type="number" min={1} value={Number(line.lines_in_document ?? 1)} onChange={(e) => set("lines_in_document", Number(e.target.value))} />
-          </label>
-          <label>
-            Created on a
-            <select value={Number(line.created_weekday ?? 0)} onChange={(e) => set("created_weekday", Number(e.target.value))}>
-              {DAYS.map((d, i) => (
-                <option key={d} value={(i + 1) % 7}>
-                  {d}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label className="toggle">
-            <input type="checkbox" checked={Boolean(line.from_requisition)} onChange={(e) => set("from_requisition", e.target.checked)} />
-            Came from a purchase requisition
-          </label>
         </div>
+        <p className="note">
+          The score reads the history of the vendor for this company and match type. Buyer and what is bought are
+          shown on the right for context; the value, the date and the size of the order did not help on earlier
+          months, so they are not asked for.
+        </p>
         <datalist id="vendors">
           {options.vendors.slice(0, 2500).map((v) => (
             <option key={v} value={v} />

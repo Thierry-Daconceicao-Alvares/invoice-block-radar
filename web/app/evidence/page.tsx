@@ -53,9 +53,9 @@ export default async function EvidencePage() {
         <p className="eyebrow">Evidence</p>
         <h1>Every claim on this site, measured on months that were never used to choose.</h1>
         <p className="lead">
-          Methods are chosen on earlier months only, learning just from outcomes a team would already have known,
-          then scored once on September and October 2018. The outcome is “invoice blocked within 60 days”, and
-          only lines invoiced at least 60 days before the log ends are scored, so no outcome is cut short.
+          Methods are chosen on earlier months only, learning just from outcomes the company already knew, then
+          scored once on September and October 2018. Only lines invoiced at least 60 days before the log ends are
+          scored, so a block had time to show up.
         </p>
       </section>
 
@@ -63,11 +63,13 @@ export default async function EvidencePage() {
         <div>
           <h2>1. At order time, a simple history rate beats the machine-learning models</h2>
           <p className="sub">
-            Five candidates were compared month by month from May to August, each month learning only from lines
-            whose 60-day window had closed. The live block rate of the vendor (for the same company and match type)
-            won every month. On {fmt.int(f.test.lines)} lines of September-October, {fmt.pct(f.test.block_rate)}{" "}
+            Five candidates were compared month by month from May to August, each month learning only from outcomes
+            the company already knew. The live block rate of the vendor (for the same company and match type) came
+            out on top on average, tied with the vendor&apos;s rate alone (within half a point every month), and
+            ahead of both LightGBM models every month. On {fmt.int(f.test.lines)} lines of September-October, {fmt.pct(f.test.block_rate)}{" "}
             of them blocked, checking the riskiest 20% catches {fmt.pct(chosen.share_of_blocks_caught)} of future
-            blocks, against {fmt.pct(random.share_of_blocks_caught)} for a random check.
+            blocks, against {fmt.pct(random.share_of_blocks_caught)} for a random check,{" "}
+            {(chosen.share_of_blocks_caught / random.share_of_blocks_caught).toFixed(1)} times as many.
           </p>
         </div>
         <div className="table-wrap">
@@ -118,9 +120,8 @@ export default async function EvidencePage() {
             />
             <p className="note">
               The LightGBM models learned patterns of the earlier months that did not carry over. A first version
-              looked better (42% caught), until two flaws were fixed: its history counted some blocks before they
-              were known, and it learned from recent lines whose outcome was not known yet. It is kept here as it
-              came out.
+              looked better (42% caught) until an independent review found flaws in how outcomes were timed and
+              counted; with them fixed, the models fell behind. They are kept here as they came out.
             </p>
           </div>
         </div>
@@ -132,9 +133,9 @@ export default async function EvidencePage() {
           <p className="sub">
             Among blocks raised after the goods arrived ({fmt.pct(e.triage.correction_rate_test)} of them really
             needed a correction in September-October), which should be opened first? Three scores were compared on
-            August, on the share of real corrections found in the first 20% of the pile. The average of the
-            vendor&apos;s and the buyer&apos;s past correction rates won narrowly; LightGBM was close. On
-            September-October the chosen score finds{" "}
+            August, each learning only from blocks already released, on the share of real corrections found in
+            the first 20% of the pile. The average of the vendor&apos;s and the buyer&apos;s past correction rates
+            won. On September-October the chosen score finds{" "}
             {fmt.pct(e.triage.test_scores[triageChosen].corrections_in_first_20pct)} of the corrections in the first
             20%; the vendor&apos;s history alone did a little better there, shown as it came out.
           </p>
