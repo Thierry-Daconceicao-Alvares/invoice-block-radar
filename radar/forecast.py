@@ -18,13 +18,13 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-import duckdb
 import lightgbm as lgb
 import numpy as np
 import pandas as pd
-from sklearn.metrics import average_precision_score, roc_auc_score
 
-from radar.charts import capture_chart, drivers_chart
+# The API imports this module for its feature definitions only, so the
+# training-time libraries (duckdb, scikit-learn, matplotlib, SHAP) are imported
+# where they are used.
 
 ROOT = Path(__file__).resolve().parents[1]
 WAREHOUSE = ROOT / "data" / "warehouse.duckdb"
@@ -106,6 +106,8 @@ PARAMS = {
 
 
 def load() -> pd.DataFrame:
+    import duckdb
+
     with duckdb.connect(str(WAREHOUSE), read_only=True) as con:
         return con.sql("select * from ml_order_lines").df()
 
@@ -147,6 +149,8 @@ def capture(y: np.ndarray, score: np.ndarray, share: float = REVIEW_SHARE) -> di
 
 
 def scores(y: np.ndarray, score: np.ndarray) -> dict:
+    from sklearn.metrics import average_precision_score, roc_auc_score
+
     return {
         "roc_auc": round(float(roc_auc_score(y, score)), 3),
         "pr_auc": round(float(average_precision_score(y, score)), 3),
@@ -172,6 +176,8 @@ def baselines(train: pd.DataFrame, test: pd.DataFrame) -> dict[str, np.ndarray]:
 
 
 def main() -> None:
+    from radar.charts import capture_chart, drivers_chart, gains_points
+
     for folder in (MODELS, RESULTS, IMAGES):
         folder.mkdir(parents=True, exist_ok=True)
     data = load()
@@ -192,6 +198,9 @@ def main() -> None:
         callbacks=[lgb.early_stopping(100, verbose=False)],
     )
     model.save_model(str(MODELS / "forecast.txt"))
+    meta = {"prior": float(prior), "prior_weight": PRIOR_WEIGHT, "categories": categories,
+            "best_iteration": model.best_iteration, "features": FEATURES}
+    (MODELS / "forecast_meta.json").write_text(json.dumps(meta, indent=1) + "\n")
 
     y = test[TARGET].astype(int).to_numpy()
     curves = {"LightGBM model": model.predict(x_test, num_iteration=model.best_iteration)}
@@ -229,6 +238,9 @@ def main() -> None:
     )
     results["drivers_mean_abs_shap"] = drivers_chart(
         model, x_test, LABELS, IMAGES / "forecast-drivers.png", seed=SEED
+    )
+    (RESULTS / "forecast_curves.json").write_text(
+        json.dumps({name: gains_points(y, score) for name, score in ordered.items()}) + "\n"
     )
     (RESULTS / "forecast.json").write_text(json.dumps(results, indent=2) + "\n")
     print(json.dumps(results["test_scores"], indent=2))

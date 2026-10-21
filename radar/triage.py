@@ -32,7 +32,7 @@ import numpy as np
 import pandas as pd
 from sklearn.metrics import average_precision_score, roc_auc_score
 
-from radar.charts import capture_chart
+from radar.charts import capture_chart, gains_points
 from radar.forecast import capture
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -189,6 +189,9 @@ def main() -> None:
         ylabel="Blocks that really needed a correction, found (%)",
         marker_share=OPEN_FIRST,
         marker_text="first 20% of the pile",
+    )
+    (RESULTS / "triage_curves.json").write_text(
+        json.dumps({name: gains_points(y, score) for name, score in curves.items()}) + "\n"
     )
     (RESULTS / "triage.json").write_text(json.dumps(results, indent=2) + "\n")
     print(json.dumps({k: results[k] for k in ("test_scores", "test_with_august_threshold")}, indent=2))

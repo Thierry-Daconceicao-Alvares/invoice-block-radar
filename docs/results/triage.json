@@ -6,7 +6,7 @@
     "test": 7733
   },
   "correction_rate_test": 0.074,
-  "lightgbm_trees": 550,
+  "lightgbm_trees": 686,
   "prior": 0.1156,
   "prior_weight": 10,
   "threshold": 0.0701,
@@ -18,10 +18,10 @@
       "precision_in_first_20pct": 0.161
     },
     "LightGBM model (rejected)": {
-      "roc_auc": 0.842,
-      "pr_auc": 0.241,
-      "corrections_in_first_20pct": 0.712,
-      "precision_in_first_20pct": 0.16
+      "roc_auc": 0.836,
+      "pr_auc": 0.247,
+      "corrections_in_first_20pct": 0.627,
+      "precision_in_first_20pct": 0.141
     },
     "vendor history only": {
       "roc_auc": 0.731,
@@ -38,10 +38,10 @@
       "precision_in_first_20pct": 0.16
     },
     "LightGBM model (rejected)": {
-      "roc_auc": 0.638,
-      "pr_auc": 0.134,
-      "corrections_in_first_20pct": 0.383,
-      "precision_in_first_20pct": 0.142
+      "roc_auc": 0.65,
+      "pr_auc": 0.142,
+      "corrections_in_first_20pct": 0.403,
+      "precision_in_first_20pct": 0.15
     },
     "vendor history only": {
       "roc_auc": 0.721,
@@ -56,10 +56,10 @@
       "precision_in_first_20pct": 0.118
     },
     "random order": {
-      "roc_auc": 0.491,
-      "pr_auc": 0.071,
-      "corrections_in_first_20pct": 0.174,
-      "precision_in_first_20pct": 0.065
+      "roc_auc": 0.505,
+      "pr_auc": 0.074,
+      "corrections_in_first_20pct": 0.217,
+      "precision_in_first_20pct": 0.081
     }
   },
   "test_with_august_threshold": {

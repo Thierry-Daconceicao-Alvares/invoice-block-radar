@@ -23,6 +23,15 @@ STYLES = [
 ]
 
 
+def gains_points(y: np.ndarray, score: np.ndarray, points: int = 101) -> list[list[float]]:
+    """The capture curve as [share checked %, share found %] pairs, for the interface."""
+    order = np.argsort(-score, kind="stable")
+    found = np.concatenate([[0], np.cumsum(y[order])]) / y.sum()
+    shares = np.linspace(0, 1, points)
+    idx = np.round(shares * len(y)).astype(int)
+    return [[round(float(s) * 100, 1), round(float(found[i]) * 100, 2)] for s, i in zip(shares, idx)]
+
+
 def capture_chart(
     y: np.ndarray,
     curves: dict[str, np.ndarray],
