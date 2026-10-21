@@ -60,6 +60,9 @@ TARGET = "needs_correction"
 OPEN_FIRST = 0.20  # the team opens the 20% most suspicious blocks first
 PRIOR_WEIGHT = 10
 SEED = 7
+AUGUST = pd.Timestamp("2018-08-01", tz="UTC")
+SEPTEMBER = pd.Timestamp("2018-09-01", tz="UTC")
+ROUNDS = 300
 PARAMS = {
     "objective": "binary",
     "learning_rate": 0.03,
@@ -130,29 +133,29 @@ def main() -> None:
         folder.mkdir(parents=True, exist_ok=True)
     data = load()
     data = data[data.period.notna()]
-    prior = data.loc[data.period == "train", TARGET].mean()
+    prior = data.loc[data.actual_released_at < AUGUST, TARGET].mean()
     data = add_correction_rates(data, prior)
-    train, valid, test = (data[data.period == p] for p in ("train", "validation", "test"))
+    valid, test = (data[data.period == p] for p in ("validation", "test"))
+    # learn only from blocks already released when the period being scored starts:
+    # a block's outcome (corrected or not) is known at its release
+    train = data[data.actual_released_at < AUGUST]
+    learn_for_test = data[data.actual_released_at < SEPTEMBER]
 
-    x_train, categories = prepare(train)
+    def fit(learn: pd.DataFrame):
+        x, categories = prepare(learn)
+        model = lgb.train(PARAMS, lgb.Dataset(x, learn[TARGET].astype(int)), num_boost_round=ROUNDS)
+        return model, categories
+
+    model, categories = fit(train)
     x_valid, _ = prepare(valid, categories)
-    x_test, _ = prepare(test, categories)
-    model = lgb.train(
-        PARAMS,
-        lgb.Dataset(x_train, train[TARGET].astype(int)),
-        num_boost_round=3000,
-        valid_sets=[lgb.Dataset(x_valid, valid[TARGET].astype(int))],
-        callbacks=[lgb.early_stopping(100, verbose=False)],
-    )
+    test_model, test_categories = fit(learn_for_test)
+    x_test, _ = prepare(test, test_categories)
     y_valid = valid[TARGET].astype(int).to_numpy()
     y = test[TARGET].astype(int).to_numpy()
     candidates = {
         "vendor + buyer history": (plain_score(valid), plain_score(test)),
         "vendor history": (valid["vendor_correction_rate"].to_numpy(), test["vendor_correction_rate"].to_numpy()),
-        "LightGBM model": (
-            model.predict(x_valid, num_iteration=model.best_iteration),
-            model.predict(x_test, num_iteration=model.best_iteration),
-        ),
+        "LightGBM model": (model.predict(x_valid), test_model.predict(x_test)),
     }
     validation = {name: scores(y_valid, v) for name, (v, _) in candidates.items()}
     chosen = max(validation, key=lambda n: validation[n]["corrections_in_first_20pct"])
@@ -169,7 +172,7 @@ def main() -> None:
         "scope": "blocks raised after the goods had arrived",
         "blocks": {"train": len(train), "validation": len(valid), "test": len(test)},
         "correction_rate_test": round(float(y.mean()), 3),
-        "lightgbm_trees": model.best_iteration,
+        "learned_from": {"august": len(train), "september_october": len(learn_for_test)},
         "prior": round(float(prior), 4),
         "prior_weight": PRIOR_WEIGHT,
         "threshold": round(threshold, 4),

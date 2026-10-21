@@ -1,55 +1,58 @@
 {
   "scope": "blocks raised after the goods had arrived",
   "blocks": {
-    "train": 19804,
+    "train": 17068,
     "validation": 4716,
     "test": 7733
   },
   "correction_rate_test": 0.074,
-  "lightgbm_trees": 543,
-  "prior": 0.1156,
+  "learned_from": {
+    "august": 17068,
+    "september_october": 20317
+  },
+  "prior": 0.0993,
   "prior_weight": 10,
-  "threshold": 0.0701,
+  "threshold": 0.0668,
   "chosen": "vendor + buyer history",
   "chosen_on": "share of real corrections in the first 20% of the pile, August 2018",
   "validation_scores": {
     "vendor + buyer history (chosen on August)": {
-      "roc_auc": 0.797,
-      "pr_auc": 0.163,
-      "corrections_in_first_20pct": 0.717,
-      "precision_in_first_20pct": 0.161
+      "roc_auc": 0.793,
+      "pr_auc": 0.16,
+      "corrections_in_first_20pct": 0.731,
+      "precision_in_first_20pct": 0.164
     },
     "vendor history (not chosen)": {
-      "roc_auc": 0.731,
-      "pr_auc": 0.139,
+      "roc_auc": 0.73,
+      "pr_auc": 0.132,
       "corrections_in_first_20pct": 0.651,
       "precision_in_first_20pct": 0.146
     },
     "LightGBM model (not chosen)": {
-      "roc_auc": 0.855,
-      "pr_auc": 0.277,
-      "corrections_in_first_20pct": 0.708,
-      "precision_in_first_20pct": 0.159
+      "roc_auc": 0.761,
+      "pr_auc": 0.211,
+      "corrections_in_first_20pct": 0.528,
+      "precision_in_first_20pct": 0.119
     }
   },
   "test_scores": {
     "vendor + buyer history (chosen on August)": {
-      "roc_auc": 0.721,
-      "pr_auc": 0.164,
-      "corrections_in_first_20pct": 0.43,
-      "precision_in_first_20pct": 0.16
+      "roc_auc": 0.715,
+      "pr_auc": 0.161,
+      "corrections_in_first_20pct": 0.412,
+      "precision_in_first_20pct": 0.153
     },
     "vendor history (not chosen)": {
-      "roc_auc": 0.721,
-      "pr_auc": 0.168,
+      "roc_auc": 0.713,
+      "pr_auc": 0.166,
       "corrections_in_first_20pct": 0.459,
       "precision_in_first_20pct": 0.171
     },
     "LightGBM model (not chosen)": {
-      "roc_auc": 0.649,
-      "pr_auc": 0.138,
-      "corrections_in_first_20pct": 0.376,
-      "precision_in_first_20pct": 0.14
+      "roc_auc": 0.701,
+      "pr_auc": 0.162,
+      "corrections_in_first_20pct": 0.41,
+      "precision_in_first_20pct": 0.153
     },
     "highest value first": {
       "roc_auc": 0.524,
@@ -65,8 +68,8 @@
     }
   },
   "test_with_august_threshold": {
-    "share_flagged": 0.348,
-    "corrections_flagged": 0.67,
+    "share_flagged": 0.347,
+    "corrections_flagged": 0.663,
     "corrections_among_not_flagged": 0.038,
     "median_days_blocked_not_flagged": 14.0
   }
