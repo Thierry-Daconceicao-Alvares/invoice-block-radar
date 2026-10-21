@@ -1,0 +1,42 @@
+# Asks a real model (Mistral) to write the demo's case notes, checks every note
+# in code, and commits the answers so the public demo can replay them without
+# any key. Started by hand; needs the MISTRAL_API_KEY repository secret.
+name: Record the case notes
+
+on:
+  workflow_dispatch:
+    inputs:
+      model:
+        description: Mistral model id
+        type: string
+        default: ministral-14b-latest
+
+permissions:
+  contents: write
+
+jobs:
+  record:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+          cache: pip
+      - run: pip install httpx pydantic
+      - name: Write, check and record the notes
+        env:
+          MISTRAL_API_KEY: ${{ secrets.MISTRAL_API_KEY }}
+          MISTRAL_MODEL: ${{ inputs.model }}
+        run: python scripts/record_notes.py
+      - name: Commit the recordings
+        env:
+          AUTHOR_NAME: Thierry Daconceição Alvares
+          AUTHOR_EMAIL: 91541305+Thierry-Daconceicao-Alvares@users.noreply.github.com
+        run: |
+          git config user.name "$AUTHOR_NAME"
+          git config user.email "$AUTHOR_EMAIL"
+          git add data/demo/recorded_notes.jsonl docs/results/writer.json
+          git commit -m "Record the case notes written by ${{ inputs.model }} (run ${{ github.run_id }})"
+          git pull --rebase origin main
+          git push origin HEAD:main
