@@ -20,3 +20,10 @@ Expected output: `251,734 items, 1,595,923 events`.
 
 SHA-256 of the file used here:
 `af63bc687fc4152f2123b05c3af7772b37ef3fce2d3f67f812666c9e356baae7`
+
+## Files derived from the log, kept in the repository
+
+`data/demo/` holds small extracts the public demo needs, built by `python -m radar.queue`:
+the queue of blocks still open on 15 October 2018 with their case files, and the
+case files sent to the writer. They keep the log's anonymised identifiers and its
+transformed amounts, and carry the same terms of use as the log.

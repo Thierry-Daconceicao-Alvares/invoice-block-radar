@@ -1,0 +1,49 @@
+{
+  "scope": "every block raised in Sep-Oct 2018",
+  "blocks": 9883,
+  "by_predicted_cause": {
+    "likely_mismatch": {
+      "blocks": 2694,
+      "share": 0.273,
+      "really_waited_for_goods": 0.01,
+      "really_needed_a_correction": 0.143,
+      "released_with_no_correction": 0.847,
+      "median_days_blocked": 21.0,
+      "released_by_a_person": 0.662
+    },
+    "routine_check": {
+      "blocks": 5039,
+      "share": 0.51,
+      "really_waited_for_goods": 0.014,
+      "really_needed_a_correction": 0.038,
+      "released_with_no_correction": 0.948,
+      "median_days_blocked": 14.0,
+      "released_by_a_person": 0.933
+    },
+    "waiting_for_goods": {
+      "blocks": 2150,
+      "share": 0.218,
+      "really_waited_for_goods": 0.976,
+      "really_needed_a_correction": 0.008,
+      "released_with_no_correction": 0.016,
+      "median_days_blocked": 4.0,
+      "released_by_a_person": 0.307
+    }
+  },
+  "corrections_sent_to_the_buyer": 0.65,
+  "goods_waits_recognised": 0.955,
+  "snapshot": {
+    "day": "2018-10-15",
+    "open_blocks": 3690,
+    "by_cause": {
+      "routine_check": 2092,
+      "likely_mismatch": 1194,
+      "waiting_for_goods": 404
+    },
+    "value_eur_by_cause": {
+      "likely_mismatch": 18631381,
+      "routine_check": 6488771,
+      "waiting_for_goods": 1595978
+    }
+  }
+}
