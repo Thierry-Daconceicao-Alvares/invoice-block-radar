@@ -34,8 +34,8 @@ Cause = Literal["waiting_for_goods", "likely_mismatch", "routine_check"]
 CAUSE_TEXT = {
     "waiting_for_goods": "The invoice arrived before the goods receipt was recorded.",
     "likely_mismatch": (
-        "The goods were received, and this vendor and buyer often need the order "
-        "or the invoice corrected when a block happens."
+        "The goods were received, and past blocks on this vendor's or this buyer's "
+        "orders have often needed the order or the invoice corrected."
     ),
     "routine_check": (
         "The goods were received; blocks like this one usually end with a check "
@@ -64,6 +64,8 @@ class CaseFile(BaseModel):
     contact_vendor: bool
     vendor_blocks_before: int
     vendor_corrections_before: int
+    buyer_blocks_before: int
+    buyer_corrections_before: int
 
 
 class Note(BaseModel):
@@ -190,7 +192,7 @@ Rules:
 - If contact_vendor is true, draft a polite, short email to the vendor asking them to \
 check the invoice against purchase order `po_document` and to confirm the price and \
 quantity or send a corrected invoice or credit note. Sign it "Accounts Payable". Never \
-mention internal rates, scores, the buyer's user id or how often the vendor caused blocks.
+mention internal rates, scores, the buyer's user id or how often the vendor or the buyer had blocks.
 - If contact_vendor is false, email_subject and email_body are null.
 """
 

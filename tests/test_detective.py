@@ -24,6 +24,8 @@ def case(**changes) -> CaseFile:
         contact_vendor=True,
         vendor_blocks_before=40,
         vendor_corrections_before=9,
+        buyer_blocks_before=120,
+        buyer_corrections_before=14,
     )
     return CaseFile(**(facts | changes))
 

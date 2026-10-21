@@ -107,6 +107,8 @@ def case_file(row, snapshot: datetime) -> CaseFile:
         contact_vendor=bool(row.contact_vendor),
         vendor_blocks_before=int(row.vendor_blocks_before or 0),
         vendor_corrections_before=int(row.vendor_corrections_before or 0),
+        buyer_blocks_before=int(row.buyer_blocks_before or 0),
+        buyer_corrections_before=int(row.buyer_corrections_before or 0),
     )
 
 
