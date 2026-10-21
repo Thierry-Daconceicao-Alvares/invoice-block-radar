@@ -11,39 +11,39 @@
   },
   "block_rate_test": 0.27,
   "review_share": 0.2,
-  "trees": 58,
+  "trees": 151,
   "validation_scores": {
     "LightGBM model": {
-      "roc_auc": 0.763,
-      "pr_auc": 0.61,
-      "share_of_blocks_caught": 0.444,
-      "precision": 0.59
+      "roc_auc": 0.762,
+      "pr_auc": 0.615,
+      "share_of_blocks_caught": 0.446,
+      "precision": 0.594
     }
   },
   "test_scores": {
     "LightGBM model": {
-      "roc_auc": 0.745,
-      "pr_auc": 0.565,
-      "share_of_blocks_caught": 0.416,
-      "precision": 0.562
+      "roc_auc": 0.741,
+      "pr_auc": 0.564,
+      "share_of_blocks_caught": 0.417,
+      "precision": 0.563
     },
     "random pick": {
-      "roc_auc": 0.501,
-      "pr_auc": 0.272,
-      "share_of_blocks_caught": 0.206,
-      "precision": 0.278
+      "roc_auc": 0.505,
+      "pr_auc": 0.273,
+      "share_of_blocks_caught": 0.199,
+      "precision": 0.269
     },
     "invoice-before-goods rule": {
       "roc_auc": 0.504,
       "pr_auc": 0.272,
-      "share_of_blocks_caught": 0.212,
-      "precision": 0.287
+      "share_of_blocks_caught": 0.198,
+      "precision": 0.267
     },
     "vendor history": {
       "roc_auc": 0.707,
       "pr_auc": 0.466,
       "share_of_blocks_caught": 0.366,
-      "precision": 0.494
+      "precision": 0.495
     },
     "vendor live history": {
       "roc_auc": 0.66,
@@ -53,26 +53,26 @@
     }
   },
   "drivers_mean_abs_shap": {
-    "sub_spend_area": 0.2162,
-    "pair_past_rate": 0.2056,
-    "vendor_past_rate": 0.1702,
-    "buyer_past_rate": 0.1326,
-    "vendor_paid_before": 0.1169,
-    "pair_paid_before": 0.1002,
-    "lines_in_document": 0.098,
-    "buyer_paid_before": 0.0768,
-    "area_paid_before": 0.0662,
-    "area_past_rate": 0.0533,
-    "po_value_eur": 0.0473,
-    "spend_area": 0.0163,
-    "created_weekday": 0.0155,
-    "item_type": 0.0051,
-    "document_type": 0.0024,
-    "spend_classification": 0.002,
-    "item_category": 0.0019,
+    "sub_spend_area": 0.2639,
+    "pair_past_rate": 0.2435,
+    "vendor_past_rate": 0.2046,
+    "vendor_paid_before": 0.1922,
+    "lines_in_document": 0.1603,
+    "pair_paid_before": 0.1557,
+    "buyer_past_rate": 0.1509,
+    "area_paid_before": 0.1165,
+    "buyer_paid_before": 0.1038,
+    "po_value_eur": 0.0852,
+    "area_past_rate": 0.0706,
+    "spend_area": 0.0238,
+    "created_weekday": 0.0194,
+    "item_type": 0.0128,
+    "document_type": 0.0076,
+    "item_category": 0.0074,
+    "spend_classification": 0.0052,
+    "gr_based_iv": 0.001,
+    "from_requisition": 0.0008,
     "goods_receipt_expected": 0.0,
-    "from_requisition": 0.0,
-    "gr_based_iv": 0.0,
     "company": 0.0
   }
 }

@@ -20,14 +20,11 @@ from pathlib import Path
 
 import duckdb
 import lightgbm as lgb
-import matplotlib
-
-matplotlib.use("Agg")
-import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-import shap
 from sklearn.metrics import average_precision_score, roc_auc_score
+
+from radar.charts import capture_chart, drivers_chart
 
 ROOT = Path(__file__).resolve().parents[1]
 WAREHOUSE = ROOT / "data" / "warehouse.duckdb"
@@ -101,6 +98,9 @@ PARAMS = {
     "bagging_fraction": 0.8,
     "bagging_freq": 1,
     "seed": SEED,
+    "deterministic": True,
+    "force_row_wise": True,
+    "num_threads": 2,
     "verbose": -1,
 }
 
@@ -171,55 +171,6 @@ def baselines(train: pd.DataFrame, test: pd.DataFrame) -> dict[str, np.ndarray]:
     }
 
 
-def plot_capture(y: np.ndarray, curves: dict[str, np.ndarray], target: Path) -> None:
-    fig, ax = plt.subplots(figsize=(7.5, 5), dpi=150)
-    shares = np.linspace(0, 1, 201)
-    styles = {
-        "LightGBM model": dict(color="#2457a6", lw=2.6),
-        "vendor history": dict(color="#a86a00", lw=1.4, ls="-."),
-        "vendor live history": dict(color="#a86a00", lw=1.8),
-        "invoice-before-goods rule": dict(color="#7d8b99", lw=1.6, ls="--"),
-        "random pick": dict(color="#b9c2cc", lw=1.4, ls=":"),
-    }
-    for name, score in curves.items():
-        order = np.argsort(-score, kind="stable")
-        found = np.concatenate([[0], np.cumsum(y[order])]) / y.sum()
-        idx = np.round(shares * len(y)).astype(int)
-        ax.plot(shares * 100, found[idx] * 100, label=name, **styles[name])
-    ax.axvline(REVIEW_SHARE * 100, color="#c2462e", lw=1, alpha=0.6)
-    ax.text(REVIEW_SHARE * 100 + 1, 5, "team checks 20% of lines", color="#c2462e", fontsize=9)
-    ax.set_xlabel("New order lines checked, riskiest first (%)")
-    ax.set_ylabel("Future payment blocks caught (%)")
-    ax.set_title("Sep-Oct 2018 orders, never seen in training", loc="left", fontsize=11)
-    ax.set_xlim(0, 100)
-    ax.set_ylim(0, 100)
-    ax.grid(alpha=0.25)
-    ax.spines[["top", "right"]].set_visible(False)
-    ax.legend(frameon=False, loc="lower right")
-    fig.tight_layout()
-    fig.savefig(target)
-    plt.close(fig)
-
-
-def plot_drivers(model: lgb.Booster, x: pd.DataFrame, target: Path) -> dict[str, float]:
-    sample = x.sample(n=min(5000, len(x)), random_state=SEED)
-    values = shap.TreeExplainer(model).shap_values(sample)
-    if isinstance(values, list):
-        values = values[1]
-    importance = pd.Series(np.abs(values).mean(axis=0), index=sample.columns).sort_values()
-    shown = importance[importance > 0.001]
-    fig, ax = plt.subplots(figsize=(8.5, 5.2), dpi=150)
-    ax.barh([LABELS.get(c, c) for c in shown.index], shown.values, color="#2457a6")
-    ax.set_xlabel("Average effect on the predicted risk (mean |SHAP|, log-odds)")
-    ax.set_title("What the model looks at", loc="left", fontsize=11)
-    ax.grid(axis="x", alpha=0.25)
-    ax.spines[["top", "right"]].set_visible(False)
-    fig.tight_layout()
-    fig.savefig(target)
-    plt.close(fig)
-    return {k: round(float(v), 4) for k, v in importance.sort_values(ascending=False).items()}
-
-
 def main() -> None:
     for folder in (MODELS, RESULTS, IMAGES):
         folder.mkdir(parents=True, exist_ok=True)
@@ -264,8 +215,21 @@ def main() -> None:
         },
         "test_scores": {name: scores(y, s) for name, s in curves.items()},
     }
-    plot_capture(y, curves, IMAGES / "forecast-capture.png")
-    results["drivers_mean_abs_shap"] = plot_drivers(model, x_test, IMAGES / "forecast-drivers.png")
+    ordered = {k: curves[k] for k in ["LightGBM model", "vendor live history", "vendor history",
+                                      "invoice-before-goods rule", "random pick"]}
+    capture_chart(
+        y,
+        ordered,
+        IMAGES / "forecast-capture.png",
+        title="Sep-Oct 2018 orders, never seen in training",
+        xlabel="New order lines checked, riskiest first (%)",
+        ylabel="Future payment blocks caught (%)",
+        marker_share=REVIEW_SHARE,
+        marker_text="team checks 20% of lines",
+    )
+    results["drivers_mean_abs_shap"] = drivers_chart(
+        model, x_test, LABELS, IMAGES / "forecast-drivers.png", seed=SEED
+    )
     (RESULTS / "forecast.json").write_text(json.dumps(results, indent=2) + "\n")
     print(json.dumps(results["test_scores"], indent=2))
 
