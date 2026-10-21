@@ -1,0 +1,66 @@
+{
+  "scope": "3-way match, invoice before GR",
+  "items": 221010,
+  "distinct_paths": 7830,
+  "top_10_paths_share": 0.617,
+  "top_paths": [
+    {
+      "steps": [
+        "Create Purchase Order Item",
+        "Vendor creates invoice",
+        "Record Goods Receipt",
+        "Record Invoice Receipt",
+        "Clear Invoice"
+      ],
+      "items": 47959,
+      "share": 0.217
+    },
+    {
+      "steps": [
+        "Create Purchase Order Item",
+        "Record Goods Receipt",
+        "Vendor creates invoice",
+        "Record Invoice Receipt",
+        "Clear Invoice"
+      ],
+      "items": 29410,
+      "share": 0.133
+    },
+    {
+      "steps": [
+        "Create Purchase Order Item",
+        "Vendor creates invoice",
+        "Record Goods Receipt",
+        "Record Invoice Receipt",
+        "Remove Payment Block",
+        "Clear Invoice"
+      ],
+      "items": 10854,
+      "share": 0.049
+    },
+    {
+      "steps": [
+        "Create Purchase Order Item",
+        "Receive Order Confirmation",
+        "Record Goods Receipt",
+        "Vendor creates invoice",
+        "Record Invoice Receipt",
+        "Clear Invoice"
+      ],
+      "items": 9694,
+      "share": 0.044
+    },
+    {
+      "steps": [
+        "Create Purchase Order Item",
+        "Vendor creates invoice",
+        "Record Invoice Receipt",
+        "Record Goods Receipt",
+        "Remove Payment Block",
+        "Clear Invoice"
+      ],
+      "items": 8835,
+      "share": 0.04
+    }
+  ]
+}
