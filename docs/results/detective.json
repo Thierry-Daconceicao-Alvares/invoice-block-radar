@@ -3,22 +3,22 @@
   "blocks": 9883,
   "by_predicted_cause": {
     "likely_mismatch": {
-      "blocks": 2694,
-      "share": 0.273,
+      "blocks": 2685,
+      "share": 0.272,
       "really_waited_for_goods": 0.01,
-      "really_needed_a_correction": 0.143,
-      "released_with_no_correction": 0.847,
+      "really_needed_a_correction": 0.142,
+      "released_with_no_correction": 0.848,
       "median_days_blocked": 21.0,
-      "released_by_a_person": 0.662
+      "released_by_a_person": 0.661
     },
     "routine_check": {
-      "blocks": 5039,
-      "share": 0.51,
-      "really_waited_for_goods": 0.014,
+      "blocks": 5048,
+      "share": 0.511,
+      "really_waited_for_goods": 0.015,
       "really_needed_a_correction": 0.038,
-      "released_with_no_correction": 0.948,
+      "released_with_no_correction": 0.947,
       "median_days_blocked": 14.0,
-      "released_by_a_person": 0.933
+      "released_by_a_person": 0.932
     },
     "waiting_for_goods": {
       "blocks": 2150,
@@ -35,21 +35,21 @@
     "needed_a_correction": 0.074,
     "released_with_no_correction": 0.913
   },
-  "corrections_sent_to_the_buyer": 0.65,
-  "buyer_pile_share_of_goods_received_blocks": 0.348,
-  "buyer_pile_concentration": 1.87,
+  "corrections_sent_to_the_buyer": 0.644,
+  "buyer_pile_share_of_goods_received_blocks": 0.347,
+  "buyer_pile_concentration": 1.85,
   "goods_waits_recognised": 0.955,
   "snapshot": {
     "day": "2018-10-15",
     "open_blocks": 3690,
     "by_cause": {
-      "routine_check": 2092,
-      "likely_mismatch": 1194,
+      "routine_check": 2100,
+      "likely_mismatch": 1186,
       "waiting_for_goods": 404
     },
     "value_eur_by_cause": {
-      "likely_mismatch": 18631381,
-      "routine_check": 6488771,
+      "likely_mismatch": 18587200,
+      "routine_check": 6532952,
       "waiting_for_goods": 1595978
     }
   }

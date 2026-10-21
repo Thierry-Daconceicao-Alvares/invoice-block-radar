@@ -40,21 +40,14 @@ Cause = Literal["waiting_for_goods", "likely_mismatch", "routine_check"]
 
 
 class OrderLine(BaseModel):
+    """What the score uses: the vendor, company and match type set the history it
+    reads; buyer and spend area are shown for context. Other fields are ignored."""
+
     vendor: str = Field(examples=["vendorID_0120"])
     company: str = Field(examples=["companyID_0000"])
     item_category: str = Field(examples=["3-way match, invoice before GR"])
-    item_type: str = "Standard"
-    document_type: str = "Standard PO"
-    spend_area: str | None = None
-    sub_spend_area: str | None = None
-    spend_classification: str | None = None
-    gr_based_iv: bool = False
-    goods_receipt_expected: bool = True
     created_by: str | None = Field(default=None, description="The buyer creating the line")
-    from_requisition: bool = False
-    lines_in_document: int = Field(default=1, ge=1)
-    po_value_eur: float = Field(default=1000, ge=0)
-    created_weekday: int = Field(default=1, ge=0, le=6)
+    sub_spend_area: str | None = None
     example_id: str | None = Field(
         default=None, description="A real example line: its history is taken as of its creation day"
     )
