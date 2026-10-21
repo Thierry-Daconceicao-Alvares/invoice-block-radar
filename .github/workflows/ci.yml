@@ -21,3 +21,20 @@ jobs:
         env:
           DBT_SEND_ANONYMOUS_USAGE_STATS: "false"
         run: dbt parse --profiles-dir .
+
+  web:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: web
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+      - run: npm ci
+      - run: npx tsc --noEmit
+      - name: Build (pages read the repository's data, no API needed)
+        run: npx next build
