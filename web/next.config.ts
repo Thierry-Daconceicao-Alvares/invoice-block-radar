@@ -1,7 +1,9 @@
 import type { NextConfig } from "next";
 
+import { API_URL } from "./lib/api-url";
+
 // The browser talks to this app only; /api/* is forwarded to the FastAPI service.
-const api = process.env.API_URL ?? "http://localhost:8000";
+const api = API_URL;
 
 const config: NextConfig = {
   async rewrites() {

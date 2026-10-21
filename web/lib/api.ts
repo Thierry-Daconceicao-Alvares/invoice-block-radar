@@ -1,5 +1,7 @@
 // Types of what the FastAPI service returns, and a server-side fetch helper.
 
+import { API_URL } from "@/lib/api-url";
+
 export type Cause = "waiting_for_goods" | "likely_mismatch" | "routine_check";
 
 export const CAUSES: Record<Cause, { label: string; short: string; tone: string }> = {
@@ -133,7 +135,6 @@ export type ForecastResult = {
   history: Record<string, { paid_before: number; blocked_before: number }>;
 };
 
-const API_URL = process.env.API_URL ?? "http://localhost:8000";
 
 export async function getJSON<T>(path: string): Promise<T> {
   const response = await fetch(`${API_URL}${path}`, { next: { revalidate: 3600 } });
