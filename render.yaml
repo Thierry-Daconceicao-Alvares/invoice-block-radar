@@ -1,0 +1,13 @@
+# Render blueprint: the API as a free Docker web service.
+# New > Blueprint > this repository. Render rebuilds it on every push to main.
+services:
+  - type: web
+    name: invoice-block-radar-api
+    runtime: docker
+    plan: free
+    dockerfilePath: ./Dockerfile
+    healthCheckPath: /api/health
+    autoDeploy: true
+    envVars:
+      - key: ALLOWED_ORIGINS
+        value: "*"
