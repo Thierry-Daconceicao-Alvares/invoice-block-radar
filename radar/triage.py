@@ -8,15 +8,13 @@ invoice and releases it. A small share need a real correction. The model ranks
 the blocks so the team opens the ones that need work first, and clears the
 others with a quick check.
 
-Two candidates are compared on August (validation) and scored once on
-September-October (test):
+Three candidates are compared on August (validation), on the measure the team
+uses: the share of real corrections found in the first 20% of the pile.
   * a LightGBM model on everything known when the invoice blocks;
-  * a plain score: the average of the vendor's and the buyer's past
-    correction rates (corrections among their blocks already settled).
-The LightGBM model looked better on August but fell back on September-October:
-the share of blocks needing a correction moves a lot from month to month and
-the model does not hold. The plain score holds, so it is the one used. Both
-results are kept in docs/results/triage.json.
+  * the vendor's past correction rate (corrections among its blocks settled);
+  * the average of the vendor's and the buyer's past correction rates.
+The best one on August is used; September-October (test) is scored once, for
+all three, and every result is kept in docs/results/triage.json.
 
 Writes docs/results/triage.json and docs/images/triage-capture.png.
 """
@@ -82,7 +80,7 @@ PARAMS = {
 
 def load() -> pd.DataFrame:
     with duckdb.connect(str(WAREHOUSE), read_only=True) as con:
-        return con.sql("select * from detective_cases where goods_received").df()
+        return con.sql("select * from detective_cases where goods_received order by case_id").df()
 
 
 def add_correction_rates(frame: pd.DataFrame, prior: float) -> pd.DataFrame:
@@ -147,18 +145,26 @@ def main() -> None:
         callbacks=[lgb.early_stopping(100, verbose=False)],
     )
     y_valid = valid[TARGET].astype(int).to_numpy()
-    valid_model = model.predict(x_valid, num_iteration=model.best_iteration)
-    threshold = threshold_for(plain_score(valid), OPEN_FIRST)  # fixed on August, then applied as is
     y = test[TARGET].astype(int).to_numpy()
-    rng = np.random.default_rng(SEED)
-    curves = {
-        "vendor + buyer history (used)": plain_score(test),
-        "LightGBM model (rejected)": model.predict(x_test, num_iteration=model.best_iteration),
-        "vendor history only": test["vendor_correction_rate"].to_numpy(),
-        "highest value first": test["po_value_eur"].to_numpy(),
-        "random order": rng.random(len(test)),
+    candidates = {
+        "vendor + buyer history": (plain_score(valid), plain_score(test)),
+        "vendor history": (valid["vendor_correction_rate"].to_numpy(), test["vendor_correction_rate"].to_numpy()),
+        "LightGBM model": (
+            model.predict(x_valid, num_iteration=model.best_iteration),
+            model.predict(x_test, num_iteration=model.best_iteration),
+        ),
     }
-    flagged = curves["vendor + buyer history (used)"] >= threshold
+    validation = {name: scores(y_valid, v) for name, (v, _) in candidates.items()}
+    chosen = max(validation, key=lambda n: validation[n]["corrections_in_first_20pct"])
+    if chosen == "LightGBM model":
+        raise SystemExit("The model won on August: the detective's rules would need to use it.")
+    threshold = threshold_for(candidates[chosen][0], OPEN_FIRST)  # fixed on August, then applied as is
+    rng = np.random.default_rng(SEED)
+    label = {n: f"{n} ({'chosen on August' if n == chosen else 'not chosen'})" for n in candidates}
+    curves = {label[chosen]: candidates[chosen][1]}
+    curves |= {label[n]: t for n, (_, t) in candidates.items() if n != chosen}
+    curves |= {"highest value first": test["po_value_eur"].to_numpy(), "random order": rng.random(len(test))}
+    flagged = candidates[chosen][1] >= threshold
     results = {
         "scope": "blocks raised after the goods had arrived",
         "blocks": {"train": len(train), "validation": len(valid), "test": len(test)},
@@ -167,11 +173,9 @@ def main() -> None:
         "prior": round(float(prior), 4),
         "prior_weight": PRIOR_WEIGHT,
         "threshold": round(threshold, 4),
-        "validation_scores": {
-            "vendor + buyer history (used)": scores(y_valid, plain_score(valid)),
-            "LightGBM model (rejected)": scores(y_valid, valid_model),
-            "vendor history only": scores(y_valid, valid["vendor_correction_rate"].to_numpy()),
-        },
+        "chosen": chosen,
+        "chosen_on": "share of real corrections in the first 20% of the pile, August 2018",
+        "validation_scores": {label[n]: v for n, v in validation.items()},
         "test_scores": {name: scores(y, s) for name, s in curves.items()},
         "test_with_august_threshold": {
             "share_flagged": round(float(flagged.mean()), 3),
