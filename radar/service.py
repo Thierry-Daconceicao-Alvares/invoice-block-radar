@@ -56,8 +56,17 @@ class Radar:
             for name in ("forecast", "forecast_curves", "triage", "triage_curves", "detective", "writer")
         }
 
-    def queue(self, cause: str | None = None, search: str | None = None, limit: int = 50, offset: int = 0) -> dict:
+    def queue(
+        self,
+        cause: str | None = None,
+        search: str | None = None,
+        limit: int = 50,
+        offset: int = 0,
+        recorded_only: bool = False,
+    ) -> dict:
         rows = self._queue
+        if recorded_only:
+            rows = [r for r in rows if r["case"]["case_id"] in self.recorded_ids]
         if cause:
             rows = [r for r in rows if r["case"]["cause"] == cause]
         if search:
@@ -143,7 +152,10 @@ class Radar:
             "examples": self.history["examples"],
         }
 
-    def forecast(self, line: dict) -> dict:
+    def forecast(self, line: dict, example_id: str | None = None) -> dict:
+        """Risk for one order line. A real example line keeps the history known
+        on the day it was created, so its score can be compared with what really
+        happened; any other line uses the history known on the snapshot day."""
         model, meta = self._model
         frame = pd.DataFrame([line])
         keys = {
@@ -152,10 +164,18 @@ class Radar:
             "area": line.get("sub_spend_area"),
             "pair": f"{line.get('vendor')}|{line.get('company')}|{line.get('item_category')}",
         }
+        example = next((e for e in self.history["examples"] if e["case_id"] == example_id), None)
+        same_keys = example is not None and all(
+            str(line.get(k)) == str(example.get(k))
+            for k in ("vendor", "created_by", "sub_spend_area", "company", "item_category")
+        )
+        counts = {}
         for who in HISTORY:
-            paid, blocked = self.history[who].get(str(keys[who]), [0, 0])
-            frame[f"{who}_paid_before"] = paid
-            frame[f"{who}_blocked_before"] = blocked
+            if same_keys:
+                counts[who] = [example[f"{who}_paid_before"] or 0, example[f"{who}_blocked_before"] or 0]
+            else:
+                counts[who] = self.history[who].get(str(keys[who]), [0, 0])
+            frame[f"{who}_paid_before"], frame[f"{who}_blocked_before"] = counts[who]
         frame = add_past_rates(frame, meta["prior"])
         x = frame.reindex(columns=FEATURES)
         for column in CATEGORICAL:
@@ -172,17 +192,14 @@ class Radar:
             ),
             key=lambda r: -abs(r["effect"]),
         )[:5]
-        history = {
-            who: dict(zip(("paid_before", "blocked_before"), self.history[who].get(str(keys[who]), [0, 0])))
-            for who in HISTORY
-        }
+        history = {who: dict(zip(("paid_before", "blocked_before"), counts[who])) for who in HISTORY}
         return {
             "risk": round(risk, 3),
             "average_risk": round(meta["prior"], 3),
             "times_average": round(risk / meta["prior"], 2),
             "band": "high" if risk >= 0.5 else "medium" if risk >= meta["prior"] else "low",
             "reasons": reasons,
-            "history_as_of": self.history["as_of"],
+            "history_as_of": example["po_created_at"][:10] if same_keys else self.history["as_of"],
             "history": history,
             "log_odds_base": round(float(contributions[-1]), 3),
         }

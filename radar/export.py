@@ -170,7 +170,9 @@ def history(con) -> dict:
         select case_id, po_created_at, vendor, company, item_category, item_type, document_type,
                spend_area, sub_spend_area, spend_classification, gr_based_iv,
                goods_receipt_expected, created_by, from_requisition, lines_in_document,
-               round(po_value_eur) as po_value_eur, was_blocked
+               round(po_value_eur) as po_value_eur, was_blocked,
+               vendor_paid_before, vendor_blocked_before, buyer_paid_before, buyer_blocked_before,
+               area_paid_before, area_blocked_before, pair_paid_before, pair_blocked_before
         from ml_order_lines
         where period = 'test'
         using sample 200 rows (reservoir, 7)

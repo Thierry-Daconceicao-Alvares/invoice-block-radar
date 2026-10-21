@@ -55,6 +55,9 @@ class OrderLine(BaseModel):
     lines_in_document: int = Field(default=1, ge=1)
     po_value_eur: float = Field(default=1000, ge=0)
     created_weekday: int = Field(default=1, ge=0, le=6)
+    example_id: str | None = Field(
+        default=None, description="A real example line: its history is taken as of its creation day"
+    )
 
 
 @app.get("/api/health")
@@ -83,8 +86,9 @@ def queue(
     search: str | None = Query(default=None, max_length=60),
     limit: int = Query(default=50, ge=1, le=200),
     offset: int = Query(default=0, ge=0),
+    recorded: bool = Query(default=False, description="Only cases whose note was written by the real model"),
 ) -> dict:
-    return radar.queue(cause, search, limit, offset)
+    return radar.queue(cause, search, limit, offset, recorded_only=recorded)
 
 
 @app.get("/api/cases/{case_id}")
@@ -102,4 +106,5 @@ def forecast_options() -> dict:
 
 @app.post("/api/forecast")
 def forecast(line: OrderLine) -> dict:
-    return radar.forecast(line.model_dump())
+    data = line.model_dump()
+    return radar.forecast(data, example_id=data.pop("example_id"))
