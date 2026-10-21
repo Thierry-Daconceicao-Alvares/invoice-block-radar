@@ -4,7 +4,7 @@ import { Fragment, useEffect, useState } from "react";
 
 import Waking from "@/components/Waking";
 import type { CaseDetail, Cause, Queue } from "@/lib/api";
-import { fetchJSON } from "@/lib/client";
+import { fetchJSON, isAbort } from "@/lib/client";
 import { CAUSES, RELEASE_REASONS, fmt } from "@/lib/api";
 
 const ORDER: Cause[] = ["likely_mismatch", "routine_check", "waiting_for_goods"];
@@ -25,6 +25,7 @@ export default function QueueView() {
   const [cause, setCause] = useState<Cause | null>(null);
   const [recorded, setRecorded] = useState(true);
   const [search, setSearch] = useState("");
+  const [query, setQuery] = useState(""); // the search, once the typing pauses
   const [offset, setOffset] = useState(0);
   const [queue, setQueue] = useState<Queue | null>(null);
   const [selected, setSelected] = useState<string | null>(null);
@@ -32,26 +33,38 @@ export default function QueueView() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    const timer = setTimeout(() => setQuery(search.trim()), 300);
+    return () => clearTimeout(timer);
+  }, [search]);
+
+  // Each change cancels the request before it, so an older answer never
+  // replaces a newer one.
+  useEffect(() => {
+    const abort = new AbortController();
     const params = new URLSearchParams({ limit: String(PAGE), offset: String(offset) });
     if (cause) params.set("cause", cause);
     if (recorded) params.set("recorded", "true");
-    if (search.trim()) params.set("search", search.trim());
-    fetchJSON<Queue>(`/api/queue?${params}`)
+    if (query) params.set("search", query);
+    fetchJSON<Queue>(`/api/queue?${params}`, { signal: abort.signal })
       .then((q) => {
         setQueue(q);
         setError(null);
-        if (q.items.length && !q.items.some((i) => i.case_id === selected)) setSelected(q.items[0].case_id);
+        setSelected((current) =>
+          q.items.length && !q.items.some((i) => i.case_id === current) ? q.items[0].case_id : current,
+        );
       })
-      .catch((e: Error) => setError(e.message));
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [cause, recorded, search, offset]);
+      .catch((e: Error) => !isAbort(e) && setError(e.message));
+    return () => abort.abort();
+  }, [cause, recorded, query, offset]);
 
   useEffect(() => {
     if (!selected) return;
+    const abort = new AbortController();
     setDetail(null);
-    fetchJSON<CaseDetail>(`/api/cases/${selected}`)
+    fetchJSON<CaseDetail>(`/api/cases/${selected}`, { signal: abort.signal })
       .then(setDetail)
-      .catch((e: Error) => setError(e.message));
+      .catch((e: Error) => !isAbort(e) && setError(e.message));
+    return () => abort.abort();
   }, [selected]);
 
   const choose = (next: Cause | null) => {
@@ -247,7 +260,7 @@ function CasePanel({ detail }: { detail: CaseDetail | null }) {
       {email ? (
         <section className="email">
           <div className="email-head">
-            <h3>Draft email to the vendor</h3>
+            <h3>Draft for the buyer: send if the check confirms a mismatch</h3>
             <button onClick={copy}>{copied ? "Copied" : "Copy"}</button>
           </div>
           <p className="subject">

@@ -42,15 +42,19 @@ export type Scores = Record<string, number>;
 
 export type Evaluation = {
   forecast: {
-    lines: Record<string, number>;
-    block_rate_test: number;
-    test_scores: Record<string, Scores>;
-    validation_scores: Record<string, Scores>;
-    drivers_mean_abs_shap: Record<string, number>;
+    outcome: string;
+    chosen: string;
+    chosen_on: string;
+    rolling_check: {
+      months: Record<string, { learned_from: number; scored: number; scores: Record<string, Scores> }>;
+      mean_share_caught: Record<string, number>;
+    };
+    test: { lines: number; learned_from: number; block_rate: number; scores: Record<string, Scores> };
   };
   forecast_curves: Record<string, [number, number][]>;
   triage: {
     blocks: Record<string, number>;
+    chosen: string;
     correction_rate_test: number;
     test_scores: Record<string, Scores>;
     validation_scores: Record<string, Scores>;
@@ -60,7 +64,10 @@ export type Evaluation = {
   detective: {
     blocks: number;
     by_predicted_cause: Record<Cause, Record<string, number>>;
+    base_rates_goods_received: { blocks: number; needed_a_correction: number; released_with_no_correction: number };
     corrections_sent_to_the_buyer: number;
+    buyer_pile_share_of_goods_received_blocks: number;
+    buyer_pile_concentration: number;
     goods_waits_recognised: number;
     snapshot: { day: string; open_blocks: number };
   };
@@ -127,12 +134,12 @@ export type ForecastOptions = {
 
 export type ForecastResult = {
   risk: number;
+  method: string;
   average_risk: number;
   times_average: number;
   band: "low" | "medium" | "high";
-  reasons: { input: string; label: string; effect: number }[];
   history_as_of: string;
-  history: Record<string, { paid_before: number; blocked_before: number }>;
+  history: { who: string; label: string; known_before: number; blocked_before: number; rate: number; used: boolean }[];
 };
 
 

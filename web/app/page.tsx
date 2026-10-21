@@ -7,7 +7,7 @@ export default async function OverviewPage() {
   const [overview, map, evaluation] = await Promise.all([loadOverview(), processMap(), loadEvaluation()]);
   const released = overview.release_reasons.find((r) => r.release_reason === "released_after_review")!;
   const totalBlocks = overview.release_reasons.reduce((s, r) => s + r.blocks, 0);
-  const forecast = evaluation.forecast.test_scores["LightGBM model"];
+  const forecast = evaluation.forecast.test.scores[evaluation.forecast.chosen];
 
   return (
     <>
@@ -40,7 +40,9 @@ export default async function OverviewPage() {
         </div>
         <div className="kpi">
           <span className="value">{fmt.pct(released.blocks / totalBlocks)}</span>
-          <span className="label">of blocks ended with nothing corrected: a check, then a release</span>
+          <span className="label">
+            of blocks ended with nothing corrected; {fmt.pct(released.released_by_a_person)} of those released by a person
+          </span>
         </div>
       </section>
 
@@ -80,9 +82,10 @@ export default async function OverviewPage() {
       <section className="panel callout" style={{ background: "var(--accent-soft)" }}>
         <h2>What the radar does about it</h2>
         <p>
-          <b>Before:</b> when an order line is created, a model trained on January to July 2018 scores its risk. On
-          September and October orders it never saw, checking the riskiest 20% catches{" "}
-          <b>{fmt.pct(forecast.share_of_blocks_caught)}</b> of future blocks, twice what a random check finds.{" "}
+          <b>Before:</b> when an order line is created, it is scored with how earlier invoices of the same vendor went,
+          counting only outcomes known that day. On September and October orders, checking the riskiest 20% catches{" "}
+          <b>{fmt.pct(forecast.share_of_blocks_caught)}</b> of future blocks, twice what a random check finds. This
+          simple rate beat two machine-learning models on every month it was compared on.{" "}
           <b>After:</b> when an invoice blocks anyway, the detective reads the case, says what is likely wrong and who
           should act, and drafts the vendor email. Open the <a href="/queue">blocked queue</a> or try the{" "}
           <a href="/radar">order radar</a>.

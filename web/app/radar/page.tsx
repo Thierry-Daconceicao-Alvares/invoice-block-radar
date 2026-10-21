@@ -9,9 +9,9 @@ export default function RadarPage() {
         <p className="eyebrow">The forecaster · at order time</p>
         <h1>Will this order line hit a payment block?</h1>
         <p className="lead">
-          A LightGBM model trained on orders from January to July 2018 scores a line the moment it is created, using
-          only what is known then: what is bought, the vendor, the buyer, and how their earlier invoices went. SHAP
-          shows which inputs raised or lowered the risk.
+          A line is scored the moment it is created with the block rate of earlier invoices of the same vendor, for
+          the same company and match type, counting only outcomes known that day. It beat two LightGBM models on
+          every month it was compared on (see the evidence page).
         </p>
       </section>
       <RadarView />

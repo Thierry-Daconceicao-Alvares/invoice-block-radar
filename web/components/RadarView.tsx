@@ -5,7 +5,7 @@ import { useCallback, useEffect, useState } from "react";
 
 import Chart, { token } from "@/components/Chart";
 import Waking from "@/components/Waking";
-import { fetchJSON } from "@/lib/client";
+import { fetchJSON, isAbort } from "@/lib/client";
 import type { ForecastOptions, ForecastResult } from "@/lib/api";
 import { fmt } from "@/lib/api";
 
@@ -17,12 +17,6 @@ const FIELDS = [
   "lines_in_document", "po_value_eur", "created_weekday",
 ];
 const DAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
-const HISTORY_LABELS: Record<string, string> = {
-  vendor: "This vendor",
-  buyer: "This buyer",
-  area: "This spend area",
-  pair: "This vendor, company and match type",
-};
 
 function pick(example: Line): Line {
   return Object.fromEntries(FIELDS.map((f) => [f, example[f] ?? null]));
@@ -34,25 +28,37 @@ export default function RadarView() {
   const [line, setLine] = useState<Line | null>(null);
   const [result, setResult] = useState<ForecastResult | null>(null);
   const [edited, setEdited] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    fetchJSON<ForecastOptions>("/api/forecast/options").then((o) => {
+    fetchJSON<ForecastOptions>("/api/forecast/options")
+      .then((o) => {
         setOptions(o);
         // open on a line that was blocked, so the first view shows the radar at work
         const first = o.examples.find((e) => e.was_blocked && Number(e.po_value_eur) > 5000) ?? o.examples[0];
         setExampleId(first.case_id);
         setLine(pick(first));
-      });
+      })
+      .catch((e: Error) => setError(e.message));
   }, []);
 
+  // Each edit cancels the previous request, so an older score never replaces a newer one.
   useEffect(() => {
     if (!line) return;
+    const abort = new AbortController();
     const body = { ...line, created_weekday: Number(line.created_weekday ?? 0), example_id: exampleId };
     fetchJSON<ForecastResult>("/api/forecast", {
       method: "POST",
       headers: { "content-type": "application/json" },
       body: JSON.stringify(body),
-    }).then(setResult);
+      signal: abort.signal,
+    })
+      .then((r) => {
+        setResult(r);
+        setError(null);
+      })
+      .catch((e: Error) => !isAbort(e) && setError(e.message));
+    return () => abort.abort();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [line]);
 
@@ -62,6 +68,7 @@ export default function RadarView() {
   };
 
   const example = options?.examples.find((e) => e.case_id === exampleId);
+  if (error && !options) return <p className="callout">The API did not answer ({error}). Reload the page in a minute.</p>;
   if (!options || !line) return <Waking what="the order lines" />;
 
   const select = (field: string, values: string[]) => (
@@ -178,24 +185,15 @@ export default function RadarView() {
                   ? "Above the usual risk. Worth a look if the team has time."
                   : "Below the usual risk. Let it run."}
             </p>
-            <Reasons result={result} />
-            <div className="history">
-              {Object.entries(result.history).map(([who, h]) => (
-                <div key={who}>
-                  <span className="note">{HISTORY_LABELS[who]}</span>
-                  <span>
-                    <span className="num">{fmt.int(h.blocked_before)}</span> blocked of{" "}
-                    <span className="num">{fmt.int(h.paid_before)}</span> paid
-                  </span>
-                </div>
-              ))}
-            </div>
+            <History result={result} />
             {example && !edited && (
               <p className={`outcome ${example.was_blocked ? "fixed" : ""}`}>
                 <b>What really happened:</b> this line {example.was_blocked ? "was blocked" : "was paid without a block"}.
               </p>
             )}
           </>
+        ) : error ? (
+          <p className="callout">The API did not answer ({error}). Reload the page in a minute.</p>
         ) : (
           <p>Scoring…</p>
         )}
@@ -250,46 +248,32 @@ function Gauge({ result }: { result: ForecastResult }) {
   return <Chart option={option} height={230} label={`Risk ${Math.round(result.risk * 100)} percent`} />;
 }
 
-function Reasons({ result }: { result: ForecastResult }) {
-  const option = useCallback((): EChartsOption => {
-    const rows = [...result.reasons].reverse();
-    return {
-      textStyle: { fontFamily: "Archivo Variable, sans-serif" },
-      grid: { left: 280, right: 50, top: 6, bottom: 6 },
-      xAxis: { type: "value", show: false },
-      yAxis: {
-        type: "category",
-        data: rows.map((r) => r.label),
-        axisLine: { show: false },
-        axisTick: { show: false },
-        axisLabel: { color: token("--ink"), fontSize: 12, width: 270, overflow: "truncate" },
-      },
-      series: [
-        {
-          type: "bar",
-          barWidth: 14,
-          data: rows.map((r) => ({
-            value: r.effect,
-            itemStyle: {
-              color: r.effect > 0 ? token("--fix") : token("--ok"),
-              borderRadius: r.effect > 0 ? [0, 4, 4, 0] : [4, 0, 0, 4],
-            },
-          })),
-          label: {
-            show: true,
-            position: "right",
-            color: token("--muted"),
-            fontSize: 11,
-            formatter: (p: unknown) => ((p as { value: number }).value > 0 ? "raises" : "lowers"),
-          },
-        },
-      ],
-    };
-  }, [result]);
+function History({ result }: { result: ForecastResult }) {
   return (
-    <div>
-      <h3 className="mini">Why: the five biggest effects (SHAP)</h3>
-      <Chart option={option} height={180} label="The five inputs that move this line's risk the most" />
+    <div className="why">
+      <h3 className="mini">Why: how earlier invoices went</h3>
+      <p className="note">
+        The score is the block rate of earlier invoices of {result.history[0].label}, whose outcome was known that day,
+        pulled toward the average when there are few. The other rates are shown for context.
+      </p>
+      <ul className="rates">
+        {result.history.map((h) => (
+          <li key={h.who} className={h.used ? "used" : ""}>
+            <span className="who">
+              {h.label}
+              {h.used && <span className="tag">used</span>}
+            </span>
+            <span className="bar" aria-hidden="true">
+              <i style={{ width: `${Math.min(100, h.rate * 100)}%` }} />
+              <b style={{ left: `${result.average_risk * 100}%` }} title="average" />
+            </span>
+            <span className="num">{fmt.pct(h.rate)}</span>
+            <span className="note">
+              {fmt.int(h.blocked_before)} of {fmt.int(h.known_before)}
+            </span>
+          </li>
+        ))}
+      </ul>
     </div>
   );
 }
