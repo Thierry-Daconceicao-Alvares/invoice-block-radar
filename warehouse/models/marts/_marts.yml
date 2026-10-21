@@ -12,3 +12,25 @@ models:
       - name: was_blocked
         description: True when the item's invoice had at least one payment block removed.
         data_tests: [not_null]
+
+  - name: fct_blocks
+    description: One row per blocked item, with the reason its block was released and how long it lasted.
+    columns:
+      - name: case_id
+        data_tests:
+          - unique
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('fct_items')
+                field: case_id
+      - name: release_reason
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: [waiting_for_goods, order_corrected, invoice_corrected, released_after_review]
+      - name: days_blocked
+        description: Days from the first invoice document to the first release; never negative.
+        data_tests:
+          - non_negative
