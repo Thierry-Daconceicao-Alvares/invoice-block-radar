@@ -2,7 +2,9 @@
 
 import { Fragment, useEffect, useState } from "react";
 
+import Waking from "@/components/Waking";
 import type { CaseDetail, Cause, Queue } from "@/lib/api";
+import { fetchJSON } from "@/lib/client";
 import { CAUSES, RELEASE_REASONS, fmt } from "@/lib/api";
 
 const ORDER: Cause[] = ["likely_mismatch", "routine_check", "waiting_for_goods"];
@@ -34,9 +36,8 @@ export default function QueueView() {
     if (cause) params.set("cause", cause);
     if (recorded) params.set("recorded", "true");
     if (search.trim()) params.set("search", search.trim());
-    fetch(`/api/queue?${params}`)
-      .then((r) => (r.ok ? r.json() : Promise.reject(new Error(`queue: ${r.status}`))))
-      .then((q: Queue) => {
+    fetchJSON<Queue>(`/api/queue?${params}`)
+      .then((q) => {
         setQueue(q);
         setError(null);
         if (q.items.length && !q.items.some((i) => i.case_id === selected)) setSelected(q.items[0].case_id);
@@ -48,8 +49,7 @@ export default function QueueView() {
   useEffect(() => {
     if (!selected) return;
     setDetail(null);
-    fetch(`/api/cases/${selected}`)
-      .then((r) => (r.ok ? r.json() : Promise.reject(new Error(`case: ${r.status}`))))
+    fetchJSON<CaseDetail>(`/api/cases/${selected}`)
       .then(setDetail)
       .catch((e: Error) => setError(e.message));
   }, [selected]);
@@ -104,7 +104,8 @@ export default function QueueView() {
         />
       </div>
 
-      {error && <p className="callout">The API did not answer ({error}). Start it with `uvicorn api.main:app`.</p>}
+      {error && <p className="callout">The API did not answer ({error}). Reload the page in a minute.</p>}
+      {!queue && !error && <Waking what="the blocked invoices" />}
 
       <div className="split">
         <div className="panel list">

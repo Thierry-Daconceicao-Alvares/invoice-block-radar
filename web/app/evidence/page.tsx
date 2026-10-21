@@ -1,6 +1,7 @@
 import { CaptureCurves, Drivers } from "@/components/EvidenceCharts";
-import type { Cause, Evaluation, Scores } from "@/lib/api";
-import { CAUSES, fmt, getJSON } from "@/lib/api";
+import type { Cause, Scores } from "@/lib/api";
+import { CAUSES, fmt } from "@/lib/api";
+import { evaluation } from "@/lib/data";
 
 export const metadata = { title: "Evidence · Invoice Block Radar" };
 
@@ -36,7 +37,7 @@ function ScoreTable({ scores, keys, best }: { scores: Record<string, Scores>; ke
 }
 
 export default async function EvidencePage() {
-  const e = await getJSON<Evaluation>("/api/evaluation");
+  const e = await evaluation();
   const model = e.forecast.test_scores["LightGBM model"];
   const kept = e.triage.test_scores["vendor + buyer history (used)"];
   const rejectedValid = e.triage.validation_scores["LightGBM model (rejected)"];

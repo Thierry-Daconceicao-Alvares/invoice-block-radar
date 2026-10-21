@@ -9,14 +9,6 @@ export function token(name: string): string {
   return getComputedStyle(document.documentElement).getPropertyValue(name).trim() || "#888";
 }
 
-export function useThemeVersion(onChange: () => void) {
-  useEffect(() => {
-    const media = window.matchMedia("(prefers-color-scheme: dark)");
-    media.addEventListener("change", onChange);
-    return () => media.removeEventListener("change", onChange);
-  }, [onChange]);
-}
-
 export default function Chart({
   option,
   height = 320,

@@ -1,14 +1,10 @@
 import { MonthlyRate, ReleaseReasons } from "@/components/OverviewCharts";
 import ProcessFlow from "@/components/ProcessFlow";
-import type { Evaluation, Overview, ProcessMap } from "@/lib/api";
-import { fmt, getJSON } from "@/lib/api";
+import { fmt } from "@/lib/api";
+import { evaluation as loadEvaluation, overview as loadOverview, processMap } from "@/lib/data";
 
 export default async function OverviewPage() {
-  const [overview, map, evaluation] = await Promise.all([
-    getJSON<Overview>("/api/overview"),
-    getJSON<ProcessMap>("/api/process-map"),
-    getJSON<Evaluation>("/api/evaluation"),
-  ]);
+  const [overview, map, evaluation] = await Promise.all([loadOverview(), processMap(), loadEvaluation()]);
   const released = overview.release_reasons.find((r) => r.release_reason === "released_after_review")!;
   const totalBlocks = overview.release_reasons.reduce((s, r) => s + r.blocks, 0);
   const forecast = evaluation.forecast.test_scores["LightGBM model"];

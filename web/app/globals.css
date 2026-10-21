@@ -176,3 +176,7 @@ tr.row.selected td { background: var(--accent-soft); }
 @media (max-width: 900px) { .radar, .form-grid, .history { grid-template-columns: 1fr; } }
 
 .panel ul { margin: 0; padding-left: 20px; display: grid; gap: 6px; }
+
+.waking { display: flex; gap: 12px; align-items: center; }
+.waking .dot { width: 10px; height: 10px; border-radius: 50%; background: var(--accent); flex: none; animation: pulse 1.2s ease-in-out infinite; }
+@keyframes pulse { 50% { opacity: 0.25; } }

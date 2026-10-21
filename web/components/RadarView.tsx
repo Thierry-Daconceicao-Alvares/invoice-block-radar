@@ -4,6 +4,8 @@ import type { EChartsOption } from "echarts";
 import { useCallback, useEffect, useState } from "react";
 
 import Chart, { token } from "@/components/Chart";
+import Waking from "@/components/Waking";
+import { fetchJSON } from "@/lib/client";
 import type { ForecastOptions, ForecastResult } from "@/lib/api";
 import { fmt } from "@/lib/api";
 
@@ -34,9 +36,7 @@ export default function RadarView() {
   const [edited, setEdited] = useState(false);
 
   useEffect(() => {
-    fetch("/api/forecast/options")
-      .then((r) => r.json())
-      .then((o: ForecastOptions) => {
+    fetchJSON<ForecastOptions>("/api/forecast/options").then((o) => {
         setOptions(o);
         // open on a line that was blocked, so the first view shows the radar at work
         const first = o.examples.find((e) => e.was_blocked && Number(e.po_value_eur) > 5000) ?? o.examples[0];
@@ -48,9 +48,11 @@ export default function RadarView() {
   useEffect(() => {
     if (!line) return;
     const body = { ...line, created_weekday: Number(line.created_weekday ?? 0), example_id: exampleId };
-    fetch("/api/forecast", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body) })
-      .then((r) => r.json())
-      .then(setResult);
+    fetchJSON<ForecastResult>("/api/forecast", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify(body),
+    }).then(setResult);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [line]);
 
@@ -60,7 +62,7 @@ export default function RadarView() {
   };
 
   const example = options?.examples.find((e) => e.case_id === exampleId);
-  if (!options || !line) return <div className="panel">Loading the order lines…</div>;
+  if (!options || !line) return <Waking what="the order lines" />;
 
   const select = (field: string, values: string[]) => (
     <select value={String(line[field] ?? "")} onChange={(e) => set(field, e.target.value)}>
