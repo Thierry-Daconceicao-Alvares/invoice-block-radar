@@ -58,9 +58,10 @@ def main() -> None:
         "failures": failures,
         "median_seconds": sorted(r["seconds"] for r in rows)[len(rows) // 2],
         "checks": [
-            "no number outside the facts",
-            "vendor email present exactly when the rules ask for one",
-            "no internal rate (%) in the vendor email",
+            "no number outside the facts, and none written in words",
+            "a vendor email exactly when the rules ask for one",
+            "in the email, only the order number, value and date: no internal count, rate or user id",
+            "no accusation, deadline or threat in the email",
             "summary under 400 characters",
         ],
     }

@@ -92,17 +92,19 @@ def correction_score(
     buyer_corrections_before: float,
     prior: float,
     prior_weight: float,
+    use_buyer: bool = True,
 ) -> float:
-    """Average of the vendor's and the buyer's past correction rates, each
-    pulled toward the overall rate when there is little history."""
+    """The vendor's past correction rate, averaged with the buyer's when
+    `use_buyer` (the triage choice made on August), each pulled toward the
+    overall rate when there is little history."""
 
     def rate(settled: float, corrected: float) -> float:
         return (corrected + prior * prior_weight) / (settled + prior_weight)
 
-    return (
-        rate(vendor_blocks_before, vendor_corrections_before)
-        + rate(buyer_blocks_before, buyer_corrections_before)
-    ) / 2
+    vendor = rate(vendor_blocks_before, vendor_corrections_before)
+    if not use_buyer:
+        return vendor
+    return (vendor + rate(buyer_blocks_before, buyer_corrections_before)) / 2
 
 
 def diagnose(goods_received: bool, score: float, threshold: float, buyer: str) -> Diagnosis:
@@ -139,43 +141,81 @@ def diagnose(goods_received: bool, score: float, threshold: float, buyer: str) -
 
 # --- checking what the writer wrote ------------------------------------------------
 
-# a number, with thousands separators only where they group three digits
-NUMBER = re.compile(r"\d{1,3}(?:[,\u202f ]\d{3})+(?:\.\d+)?|\d+(?:\.\d+)?")
+# A number standing on its own (not the digits inside an id such as user_116 or
+# vendorID_0306), with thousands separators only where they group three digits.
+NUMBER = re.compile(r"(?<![A-Za-z_\d])(\d{1,3}(?:[,\u202f ]\d{3})+(?:\.\d+)?|\d+(?:\.\d+)?)(?![A-Za-z_\d])")
+SPELLED = re.compile(
+    r"\b(two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|thirteen|fourteen|"
+    r"fifteen|sixteen|seventeen|eighteen|nineteen|twenty|thirty|forty|fifty|sixty|seventy|"
+    r"eighty|ninety|hundred|thousand|million|billion|percent|dozen)\b",
+    re.IGNORECASE,
+)
+USER_ID = re.compile(r"\buser_\d+", re.IGNORECASE)
+# The vendor is asked to check, never accused, pressed or threatened.
+NOT_FOR_THE_VENDOR = re.compile(
+    r"\b(wrong|error|errors|mistake|incorrect|overcharg\w*|fraud\w*|penalt\w*|cancel\w*|"
+    r"deadline|legal|lawyer|terminate\w*|no later than|or we|we will stop)\b",
+    re.IGNORECASE,
+)
 
 
 def _numbers(text: str) -> set[str]:
     found = set()
     for raw in NUMBER.findall(text or ""):
-        cleaned = re.sub(r"[,\u202f ]", "", raw).rstrip(".")
+        cleaned = re.sub(r"[,\u202f ]", "", raw)
         if cleaned.endswith(".0"):
             cleaned = cleaned[:-2]
-        found.add(cleaned)
-        found.update(part for part in re.split(r"[.]", cleaned) if part)
+        found.add(str(int(cleaned)) if cleaned.isdigit() else cleaned)
     return found
 
 
-def allowed_numbers(case: CaseFile) -> set[str]:
-    allowed: set[str] = set()
-    for value in case.model_dump(mode="json").values():
+def _date_parts(day: date) -> set[str]:
+    return {str(day.day), str(day.month), str(day.year)}
+
+
+def allowed_in_note(case: CaseFile) -> set[str]:
+    """Numbers the internal note may use: any figure of the case file."""
+    allowed = _date_parts(case.blocked_on)
+    for value in (
+        case.po_document, case.line_value_eur, case.days_open,
+        case.vendor_blocks_before, case.vendor_corrections_before,
+        case.buyer_blocks_before, case.buyer_corrections_before,
+    ):
         allowed |= _numbers(str(value))
-    allowed |= _numbers(case.blocked_on.strftime("%d %B %Y"))
-    allowed |= {str(case.blocked_on.day), str(case.blocked_on.year)}
     allowed.add("3")  # "3-way match" is the name of the check, not a figure
     return allowed
 
 
+def allowed_in_email(case: CaseFile) -> set[str]:
+    """Numbers the vendor may see: the purchase order, the value and the date."""
+    return _numbers(case.po_document) | _numbers(str(case.line_value_eur)) | _date_parts(case.blocked_on)
+
+
 def check(note: Note, case: CaseFile) -> list[str]:
-    """Problems with a note; an empty list means it can be shown."""
+    """Problems with a note; an empty list means it can be shown. These are
+    format and content rules, checked in code; they do not prove the wording
+    is good, only that it stays inside the facts and the rules."""
     problems = []
-    text = " ".join(filter(None, [note.summary, note.next_step, note.email_subject, note.email_body]))
-    invented = sorted(_numbers(text) - allowed_numbers(case))
+    internal = " ".join(filter(None, [note.summary, note.next_step]))
+    email = " ".join(filter(None, [note.email_subject, note.email_body]))
+    invented = sorted(_numbers(internal) - allowed_in_note(case))
     if invented:
         problems.append(f"numbers not in the facts: {', '.join(invented)}")
+    if SPELLED.search(internal + " " + email):
+        problems.append("a number written in words")
     has_email = bool(note.email_subject and note.email_body)
     if has_email != case.contact_vendor:
         problems.append("email present but not asked for" if has_email else "email missing")
-    if has_email and "%" in (note.email_body or ""):
-        problems.append("internal rates shown to the vendor")
+    if has_email:
+        extra = sorted(_numbers(email) - allowed_in_email(case))
+        if extra:
+            problems.append(f"numbers the vendor should not see: {', '.join(extra)}")
+        if "%" in email:
+            problems.append("internal rates shown to the vendor")
+        if USER_ID.search(email) or case.buyer.lower() in email.lower():
+            problems.append("internal user id shown to the vendor")
+        if NOT_FOR_THE_VENDOR.search(email):
+            problems.append("the email accuses or presses the vendor")
     if len(note.summary) > 400:
         problems.append("summary too long")
     return problems
@@ -193,8 +233,11 @@ Rules:
 - If contact_vendor is true, draft a polite, short email to the vendor asking them to \
 check the invoice against purchase order `po_document` and to confirm the price and \
 quantity or send a corrected invoice or credit note. Do not say the invoice is wrong: \
-nobody has found an error yet, the vendor is asked to check. Sign it "Accounts Payable". Never \
-mention internal rates, scores, the buyer's user id or how often the vendor or the buyer had blocks.
+nobody has found an error yet, the vendor is asked to check. Give no deadline and no \
+consequence. Sign it "Accounts Payable". Never \
+mention internal rates, scores, the buyer's user id or how often the vendor or the buyer had \
+blocks. In the email, the only figures allowed are the purchase order number, the line value \
+and the date the invoice was blocked. Write every figure in digits.
 - If contact_vendor is false, email_subject and email_body are null.
 """
 
@@ -226,8 +269,8 @@ class TemplateWriter:
             email_subject = f"Invoice check for purchase order {case.po_document}"
             email_body = (
                 "Hello,\n\n"
-                f"Your invoice for our purchase order {case.po_document} is on hold because it does "
-                "not match the order. Could you check the price and quantity invoiced against the "
+                f"Your invoice for our purchase order {case.po_document} is on hold while we check it "
+                "against the order. Could you check the price and quantity invoiced against the "
                 "order, and either confirm them or send us a corrected invoice or a credit note?\n\n"
                 "Thank you,\nAccounts Payable"
             )

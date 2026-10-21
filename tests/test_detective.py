@@ -71,3 +71,24 @@ def test_rules(goods, score, cause, vendor_email):
 def test_the_template_writer_passes_its_own_checks():
     for facts in (case(), case(contact_vendor=False, cause="routine_check")):
         assert check(TemplateWriter().write(facts), facts) == []
+
+
+# Attempts to get past the checks, taken from an independent review.
+@pytest.mark.parametrize(
+    "body, problem",
+    [
+        ("7 of your 40 invoices needed a fix. Please check order 4508000001.", "numbers the vendor should not see: 40, 7"),
+        ("user_116 flagged order 4508000001. Please check it.", "internal user id shown to the vendor"),
+        ("Your invoice for order 4508000001 is wrong.", "the email accuses or presses the vendor"),
+        ("Order 4508000001: a penalty of twelve thousand euros applies.", "a number written in words"),
+        ("Please answer by 20/09/2018 or we cancel order 4508000001.", "the email accuses or presses the vendor"),
+        ("Order 4508000001 is on hold, 22% of cases need a fix.", "internal rates shown to the vendor"),
+    ],
+)
+def test_the_vendor_email_cannot_leak_or_threaten(body, problem):
+    assert problem in check(note(email_body=body), case())
+
+
+def test_digits_inside_an_id_are_not_a_figure():
+    summary = "Order 4508000001 from vendorID_0042 is blocked; 116 EUR at stake."
+    assert check(note(summary=summary), case()) == ["numbers not in the facts: 116"]
