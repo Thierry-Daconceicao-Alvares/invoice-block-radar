@@ -13,3 +13,6 @@ data/parquet/
 warehouse/target/
 warehouse/logs/
 warehouse/dbt_packages/
+web/node_modules/
+web/.next/
+web/*.tsbuildinfo
