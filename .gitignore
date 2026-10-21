@@ -1,0 +1,15 @@
+.venv/
+__pycache__/
+*.pyc
+.env
+.pytest_cache/
+.ruff_cache/
+*.egg-info/
+# the event log and everything derived from it stay local (see data/README.md)
+data/raw/
+data/parquet/
+*.duckdb
+*.duckdb.wal
+warehouse/target/
+warehouse/logs/
+warehouse/dbt_packages/
