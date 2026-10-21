@@ -7,7 +7,9 @@ Built on a real purchase-to-pay event log: every order line created in 2018 by a
 multinational in coatings and paints (BPI Challenge 2019, 251,734 order lines,
 1.6 million recorded steps).
 
-**[Live API](https://invoice-block-radar-api.onrender.com/docs)** (the interface goes online next)
+**[Open the live demo](https://invoice-block-radar.vercel.app)** ·
+[Evidence](https://invoice-block-radar.vercel.app/evidence) ·
+[API docs](https://invoice-block-radar-api.onrender.com/docs)
 
 > The API runs on a free host that sleeps when idle: the first request after a quiet
 > period takes about a minute. The overview and evidence pages do not need it.
@@ -68,7 +70,7 @@ a case file:
 Every model learns from January to July 2018, is tuned on August, and is scored once on
 September and October, months it never saw. Each is compared with what a team could do
 without it. Full figures: [docs/results/](docs/results/) and the
-evidence page of the interface.
+[evidence page](https://invoice-block-radar.vercel.app/evidence).
 
 **Forecaster**, 33,079 order lines of September-October, 27% of them blocked. If the
 team checks the riskiest 20% of new lines:
