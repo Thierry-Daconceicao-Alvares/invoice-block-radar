@@ -33,7 +33,7 @@ SEED = 7
 
 def load() -> pd.DataFrame:
     with duckdb.connect(str(WAREHOUSE), read_only=True) as con:
-        return con.sql("select * from detective_cases").df()
+        return con.sql("select * from detective_cases order by case_id").df()
 
 
 def apply_rules(frame: pd.DataFrame, triage: dict) -> pd.DataFrame:
@@ -46,6 +46,7 @@ def apply_rules(frame: pd.DataFrame, triage: dict) -> pd.DataFrame:
             )),
             prior=triage["prior"],
             prior_weight=triage["prior_weight"],
+            use_buyer=triage["chosen"] == "vendor + buyer history",
         )
         for _, row in frame.iterrows()
     ]
@@ -79,11 +80,27 @@ def evaluate(blocks: pd.DataFrame) -> dict:
         }
     corrections = test[test.needs_correction]
     waited = test[test.actual_release_reason == "waiting_for_goods"]
+    received = test[test.goods_received]
+    mismatch = test[test.cause == "likely_mismatch"]
+    sent = float((corrections.cause == "likely_mismatch").mean())
     return {
         "scope": "every block raised in Sep-Oct 2018",
         "blocks": len(test),
         "by_predicted_cause": by_cause,
-        "corrections_sent_to_the_buyer": round(float((corrections.cause == "likely_mismatch").mean()), 3),
+        # what the rules are worth is read against these base rates
+        "base_rates_goods_received": {
+            "blocks": len(received),
+            "needed_a_correction": round(float(received.needs_correction.mean()), 3),
+            "released_with_no_correction": round(
+                float((received.actual_release_reason == "released_after_review").mean()), 3
+            ),
+        },
+        "corrections_sent_to_the_buyer": round(sent, 3),
+        "buyer_pile_share_of_goods_received_blocks": round(len(mismatch) / len(received), 3),
+        "buyer_pile_concentration": round(sent / (len(mismatch) / len(received)), 2),
+        # "waiting for goods" is read from the same fact it is checked against
+        # (no goods receipt when the invoice blocked), so this is near-certain by
+        # construction and says little about skill
         "goods_waits_recognised": round(float((waited.cause == "waiting_for_goods").mean()), 3),
     }
 
@@ -121,7 +138,9 @@ def main() -> None:
     blocks = apply_rules(load(), triage)
     results = evaluate(blocks)
 
-    queue = open_on(blocks, SNAPSHOT).sort_values(["priority", "po_value_eur"], ascending=[True, False])
+    queue = open_on(blocks, SNAPSHOT).sort_values(
+        ["priority", "po_value_eur", "case_id"], ascending=[True, False, True], kind="stable"
+    )
     DEMO.mkdir(parents=True, exist_ok=True)
     with (DEMO / "queue.jsonl").open("w") as out:
         for row in queue.itertuples():

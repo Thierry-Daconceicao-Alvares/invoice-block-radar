@@ -41,8 +41,9 @@ def test_forecast_scores_an_example_line():
     line = {k: v for k, v in example.items() if k in OrderLineFields}
     body = client.post("/api/forecast", json=line).json()
     assert 0 <= body["risk"] <= 1
-    assert len(body["reasons"]) == 5
     assert body["band"] in {"low", "medium", "high"}
+    used = [h for h in body["history"] if h["used"]]
+    assert len(used) == 1 and used[0]["rate"] == body["risk"]
 
 
 def test_queue_can_show_only_notes_written_by_the_model():
@@ -56,6 +57,7 @@ def test_an_example_line_is_scored_with_the_history_of_its_own_day():
     line = {k: v for k, v in example.items() if k in OrderLineFields}
     body = client.post("/api/forecast", json=line | {"example_id": example["case_id"]}).json()
     assert body["history_as_of"] == example["po_created_at"][:10]
-    assert body["history"]["vendor"]["paid_before"] == (example["vendor_paid_before"] or 0)
+    vendor = next(h for h in body["history"] if h["who"] == "vendor")
+    assert vendor["known_before"] == (example["vendor_known_before"] or 0)
     edited = client.post("/api/forecast", json=line | {"example_id": example["case_id"], "vendor": "vendorID_0000"}).json()
     assert edited["history_as_of"] == "2018-10-15"

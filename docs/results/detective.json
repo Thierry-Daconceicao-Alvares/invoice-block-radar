@@ -30,7 +30,14 @@
       "released_by_a_person": 0.307
     }
   },
+  "base_rates_goods_received": {
+    "blocks": 7733,
+    "needed_a_correction": 0.074,
+    "released_with_no_correction": 0.913
+  },
   "corrections_sent_to_the_buyer": 0.65,
+  "buyer_pile_share_of_goods_received_blocks": 0.348,
+  "buyer_pile_concentration": 1.87,
   "goods_waits_recognised": 0.955,
   "snapshot": {
     "day": "2018-10-15",

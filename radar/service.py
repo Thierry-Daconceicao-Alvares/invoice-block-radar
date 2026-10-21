@@ -8,11 +8,10 @@ from dataclasses import dataclass, field
 from functools import cached_property
 from pathlib import Path
 
-import lightgbm as lgb
 import pandas as pd
 
 from radar.detective import CaseFile, Note, ReplayWriter, TemplateWriter, Writer, check
-from radar.forecast import CATEGORICAL, FEATURES, HISTORY, LABELS, NUMERIC, add_past_rates
+from radar.forecast import HISTORY, LABELS, add_past_rates
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -127,37 +126,39 @@ class Radar:
         except KeyError:
             pass
         if self.live_writer is not None:
-            note = self.live_writer.write(facts)
-            if not check(note, facts):
+            try:
+                note = self.live_writer.write(facts)
+            except Exception:  # the model is down or answered badly: the template takes over
+                note = None
+            if note is not None and not check(note, facts):
                 return note, self.live_writer.name
         return self.template.write(facts), self.template.name
 
     # --- scoring a new order line ------------------------------------------------
 
     @cached_property
-    def _model(self) -> tuple[lgb.Booster, dict]:
-        meta = read_json(self.root / "models" / "forecast_meta.json")
-        return lgb.Booster(model_file=str(self.root / "models" / "forecast.txt")), meta
+    def _meta(self) -> dict:
+        return read_json(self.root / "models" / "forecast_meta.json")
 
     @cached_property
     def history(self) -> dict:
         return read_json(self.root / "data" / "demo" / "history.json")
 
     def options(self) -> dict:
-        _, meta = self._model
         return {
-            "categories": meta["categories"],
+            "categories": self._meta["categories"],
             "vendors": sorted(self.history["vendor"]),
             "buyers": sorted(self.history["buyer"]),
             "examples": self.history["examples"],
         }
 
     def forecast(self, line: dict, example_id: str | None = None) -> dict:
-        """Risk for one order line. A real example line keeps the history known
-        on the day it was created, so its score can be compared with what really
-        happened; any other line uses the history known on the snapshot day."""
-        model, meta = self._model
-        frame = pd.DataFrame([line])
+        """Risk for one order line, with the method chosen in radar.forecast: the
+        live block rate of the vendor for this company and match type. A real
+        example line keeps the history known on the day it was created, so its
+        score can be compared with what really happened; any other line uses
+        the history known on the snapshot day."""
+        meta = self._meta
         keys = {
             "vendor": line.get("vendor"),
             "buyer": line.get("created_by"),
@@ -169,39 +170,36 @@ class Radar:
             str(line.get(k)) == str(example.get(k))
             for k in ("vendor", "created_by", "sub_spend_area", "company", "item_category")
         )
+        frame = pd.DataFrame(index=[0])
         counts = {}
         for who in HISTORY:
             if same_keys:
-                counts[who] = [example[f"{who}_paid_before"] or 0, example[f"{who}_blocked_before"] or 0]
+                counts[who] = [example[f"{who}_known_before"] or 0, example[f"{who}_blocked_before"] or 0]
             else:
                 counts[who] = self.history[who].get(str(keys[who]), [0, 0])
-            frame[f"{who}_paid_before"], frame[f"{who}_blocked_before"] = counts[who]
+            frame[f"{who}_known_before"], frame[f"{who}_blocked_before"] = counts[who]
         frame = add_past_rates(frame, meta["prior"])
-        x = frame.reindex(columns=FEATURES)
-        for column in CATEGORICAL:
-            known = x[column].where(x[column].isin(meta["categories"][column]))
-            x[column] = pd.Categorical(known, categories=meta["categories"][column])
-        for column in NUMERIC:
-            x[column] = pd.to_numeric(x[column], errors="coerce").astype(float)
-        risk = float(model.predict(x, num_iteration=meta["best_iteration"])[0])
-        contributions = model.predict(x, num_iteration=meta["best_iteration"], pred_contrib=True)[0]
-        reasons = sorted(
-            (
-                {"input": name, "label": LABELS.get(name, name), "effect": round(float(value), 3)}
-                for name, value in zip(FEATURES, contributions[:-1])
-            ),
-            key=lambda r: -abs(r["effect"]),
-        )[:5]
-        history = {who: dict(zip(("paid_before", "blocked_before"), counts[who])) for who in HISTORY}
+        risk = float(frame[meta["rate"]].iloc[0])
+        reference = meta["reference_rate"]
+        history = [
+            {
+                "who": who,
+                "label": LABELS[who],
+                "known_before": int(counts[who][0]),
+                "blocked_before": int(counts[who][1]),
+                "rate": round(float(frame[f"{who}_past_rate"].iloc[0]), 3),
+                "used": f"{who}_past_rate" == meta["rate"],
+            }
+            for who in HISTORY
+        ]
         return {
             "risk": round(risk, 3),
-            "average_risk": round(meta["prior"], 3),
-            "times_average": round(risk / meta["prior"], 2),
-            "band": "high" if risk >= 0.5 else "medium" if risk >= meta["prior"] else "low",
-            "reasons": reasons,
+            "method": meta["method"],
+            "average_risk": round(reference, 3),
+            "times_average": round(risk / reference, 2),
+            "band": "high" if risk >= 0.5 else "medium" if risk >= reference else "low",
             "history_as_of": example["po_created_at"][:10] if same_keys else self.history["as_of"],
-            "history": history,
-            "log_odds_base": round(float(contributions[-1]), 3),
+            "history": sorted(history, key=lambda h: not h["used"]),
         }
 
 

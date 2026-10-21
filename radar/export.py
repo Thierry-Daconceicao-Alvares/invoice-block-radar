@@ -80,8 +80,47 @@ def overview(con) -> dict:
         order by 1
         """,
     )
+    delay = rows(
+        con,
+        """
+        -- Extra days from invoice to payment when an invoice was blocked, compared
+        -- within the same vendor (so payment terms, which differ by vendor, cancel
+        -- out). Vendors with at least 30 blocked and 30 unblocked 3-way lines.
+        with by_vendor as (
+            select vendor, was_blocked, median(days_invoice_to_cleared) as days, count(*) as lines
+            from fct_items
+            where is_invoiced and days_invoice_to_cleared is not null
+              and item_category like '3-way match%' and not has_implausible_date
+            group by 1, 2
+        ),
+        pairs as (
+            select b.vendor, b.days - n.days as extra_days, least(b.lines, n.lines) as weight
+            from by_vendor b join by_vendor n on b.vendor = n.vendor
+            where b.was_blocked and not n.was_blocked and b.lines >= 30 and n.lines >= 30
+        )
+        select
+            count(*) as vendors,
+            median(extra_days) as median_extra_days,
+            round(sum(extra_days * weight) / sum(weight), 1) as weighted_extra_days
+        from pairs
+        """,
+    )[0]
+    naive = rows(
+        con,
+        """
+        select was_blocked, median(days_invoice_to_cleared) as median_days
+        from fct_items
+        where is_invoiced and days_invoice_to_cleared is not null
+          and item_category like '3-way match%' and not has_implausible_date
+        group by 1
+        """,
+    )
     return {
         "source": "BPI Challenge 2019, purchase order items created in 2018",
+        "payment_delay": {
+            "naive_median_days": {str(r["was_blocked"]).lower(): r["median_days"] for r in naive},
+            "within_vendor": delay,
+        },
         **head,
         "blocked_share": round(head["blocked_items"] / head["items"], 3),
         "releases": people,
@@ -104,7 +143,7 @@ def process_map(con) -> dict:
         con,
         f"""
         select activity, count(*) as events, count(distinct case_id) as items
-        from steps group by 1 order by events desc limit {MAP_ACTIVITIES}
+        from steps group by 1 order by events desc, activity limit {MAP_ACTIVITIES}
         """,
     )
     kept = {n["activity"] for n in nodes}
@@ -126,44 +165,53 @@ def process_map(con) -> dict:
         where next_activity is not null and activity <> next_activity
         group by 1, 2
         having count(*) >= {MAP_MIN_TRANSITIONS}
-        order by transitions desc
+        order by transitions desc, source, target
         """,
     )
     return {"scope": "items whose payment was blocked", "nodes": nodes, "edges": edges}
 
 
 def history(con) -> dict:
-    """Counts as known on the snapshot day: paid invoices and how many had been blocked."""
+    """Counts as known on the snapshot day: earlier lines whose outcome was known,
+    and how many of them had been blocked."""
     snapshot = SNAPSHOT.isoformat()
+
+    # the same outcome and timing as the model's history features
+    # (warehouse/models/ml/ml_order_lines.sql): blocked within the window after
+    # the invoice, known at the first release or when the window closes
+    con.sql(
+        """
+        create temp table known as
+        select
+            i.*,
+            b.created_by,
+            coalesce(i.first_unblock_at <= i.first_invoice_document_at + to_days(60), false) as blocked,
+            case
+                when i.first_unblock_at <= i.first_invoice_document_at + to_days(60) then i.first_unblock_at
+                else i.first_invoice_document_at + to_days(60)
+            end as known_at
+        from fct_items i
+        left join (
+            select case_id, any_value(user_name) as created_by from stg_events
+            where activity = 'Create Purchase Order Item' group by 1
+        ) b using (case_id)
+        where i.item_category like '3-way match%' and i.first_invoice_document_at is not null
+        """
+    )
 
     def table(key: str) -> dict:
         found = rows(
             con,
             f"""
-            select {key} as k, count(*) as paid, count(*) filter (where was_blocked) as blocked
-            from fct_items
-            where item_category like '3-way match%' and first_cleared_at < '{snapshot}'
+            select {key} as k, count(*) as known, count(*) filter (where blocked) as blocked
+            from known
+            where known_at < '{snapshot}'
             group by 1
+            order by 1
             """,
         )
-        return {str(r["k"]): [r["paid"], r["blocked"]] for r in found if r["k"] is not None}
+        return {str(r["k"]): [r["known"], r["blocked"]] for r in found if r["k"] is not None}
 
-    con.sql(
-        """
-        create temp table buyers as
-        select case_id, any_value(user_name) as created_by from stg_events
-        where activity = 'Create Purchase Order Item' group by 1
-        """
-    )
-    buyer = rows(
-        con,
-        f"""
-        select b.created_by as k, count(*) as paid, count(*) filter (where i.was_blocked) as blocked
-        from fct_items i join buyers b using (case_id)
-        where i.item_category like '3-way match%' and i.first_cleared_at < '{snapshot}'
-        group by 1
-        """,
-    )
     examples = rows(
         con,
         f"""
@@ -171,11 +219,12 @@ def history(con) -> dict:
                spend_area, sub_spend_area, spend_classification, gr_based_iv,
                goods_receipt_expected, created_by, from_requisition, lines_in_document,
                round(po_value_eur) as po_value_eur, was_blocked,
-               vendor_paid_before, vendor_blocked_before, buyer_paid_before, buyer_blocked_before,
-               area_paid_before, area_blocked_before, pair_paid_before, pair_blocked_before
+               vendor_known_before, vendor_blocked_before, buyer_known_before, buyer_blocked_before,
+               area_known_before, area_blocked_before, pair_known_before, pair_blocked_before
         from ml_order_lines
         where period = 'test'
-        using sample 200 rows (reservoir, 7)
+        order by md5(case_id)
+        limit 200
         """,
     )
     for example in examples:
@@ -185,7 +234,7 @@ def history(con) -> dict:
         "vendor": table("vendor"),
         "area": table("sub_spend_area"),
         "pair": table("vendor || '|' || company || '|' || item_category"),
-        "buyer": {str(r["k"]): [r["paid"], r["blocked"]] for r in buyer},
+        "buyer": table("created_by"),
         "examples": examples,
     }
 
@@ -194,7 +243,7 @@ def main() -> None:
     DEMO.mkdir(parents=True, exist_ok=True)
     with duckdb.connect(str(WAREHOUSE), read_only=True) as con:
         for name, build in (("overview", overview), ("process_map", process_map), ("history", history)):
-            (DEMO / f"{name}.json").write_text(json.dumps(build(con), default=str) + "\n")
+            (DEMO / f"{name}.json").write_text(json.dumps(build(con), default=str, sort_keys=True) + "\n")
             print("written", name)
 
 
