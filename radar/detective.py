@@ -141,9 +141,11 @@ def diagnose(goods_received: bool, score: float, threshold: float, buyer: str) -
 
 # --- checking what the writer wrote ------------------------------------------------
 
-# A number standing on its own (not the digits inside an id such as user_116 or
-# vendorID_0306), with thousands separators only where they group three digits.
-NUMBER = re.compile(r"(?<![A-Za-z_\d])(\d{1,3}(?:[,\u202f ]\d{3})+(?:\.\d+)?|\d+(?:\.\d+)?)(?![A-Za-z_\d])")
+# Ids of the log (user_116, vendorID_0306...) are taken out before numbers are
+# read, so their digits are not figures; every other digit is, even glued to a
+# unit (13000EUR, 13k, 40pcs). Thousands separators only group three digits.
+ID = re.compile(r"\b(?:user|batch|vendorID|vendor|companyID|sourceSystemID)_\d+\b", re.IGNORECASE)
+NUMBER = re.compile(r"\d{1,3}(?:[,\u202f ]\d{3})+(?:\.\d+)?|\d+(?:\.\d+)?")
 SPELLED = re.compile(
     r"\b(two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|thirteen|fourteen|"
     r"fifteen|sixteen|seventeen|eighteen|nineteen|twenty|thirty|forty|fifty|sixty|seventy|"
@@ -154,14 +156,17 @@ USER_ID = re.compile(r"\buser_\d+", re.IGNORECASE)
 # The vendor is asked to check, never accused, pressed or threatened.
 NOT_FOR_THE_VENDOR = re.compile(
     r"\b(wrong|error|errors|mistake|incorrect|overcharg\w*|fraud\w*|penalt\w*|cancel\w*|"
-    r"deadline|legal|lawyer|terminate\w*|no later than|or we|we will stop)\b",
+    r"deadline|legal|lawyer|terminat\w*|withh[eo]ld\w*|suspend\w*|otherwise|failing|"
+    r"immediately|urgent\w*|asap|no later than|or we|we will stop|"
+    r"(?:by|before|until) (?:monday|tuesday|wednesday|thursday|friday|saturday|sunday|tomorrow|"
+    r"the end of|end of|next week|\d))\b",
     re.IGNORECASE,
 )
 
 
 def _numbers(text: str) -> set[str]:
     found = set()
-    for raw in NUMBER.findall(text or ""):
+    for raw in NUMBER.findall(ID.sub(" ", text or "")):
         cleaned = re.sub(r"[,\u202f ]", "", raw)
         if cleaned.endswith(".0"):
             cleaned = cleaned[:-2]

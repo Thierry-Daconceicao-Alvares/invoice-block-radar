@@ -83,6 +83,10 @@ def test_the_template_writer_passes_its_own_checks():
         ("Order 4508000001: a penalty of twelve thousand euros applies.", "a number written in words"),
         ("Please answer by 20/09/2018 or we cancel order 4508000001.", "the email accuses or presses the vendor"),
         ("Order 4508000001 is on hold, 22% of cases need a fix.", "internal rates shown to the vendor"),
+        ("Order 4508000001: 13000EUR were invoiced.", "numbers the vendor should not see: 13000"),
+        ("Order 4508000001: about 13k EUR.", "numbers the vendor should not see: 13"),
+        ("Order 4508000001: we received 40pcs.", "numbers the vendor should not see: 40"),
+        ("Please reply about order 4508000001 by Friday, otherwise payment stays withheld.", "the email accuses or presses the vendor"),
     ],
 )
 def test_the_vendor_email_cannot_leak_or_threaten(body, problem):
