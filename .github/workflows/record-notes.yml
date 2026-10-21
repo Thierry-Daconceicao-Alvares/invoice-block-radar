@@ -1,6 +1,7 @@
 # Asks a real model (Mistral) to write the demo's case notes, checks every note
 # in code, and commits the answers so the public demo can replay them without
-# any key. Started by hand; needs the MISTRAL_API_KEY repository secret.
+# any key. Started by hand on a branch, it commits to that same branch; needs
+# the MISTRAL_API_KEY repository secret.
 name: Record the case notes
 
 on:
@@ -38,5 +39,5 @@ jobs:
           git config user.email "$AUTHOR_EMAIL"
           git add data/demo/recorded_notes.jsonl docs/results/writer.json
           git commit -m "Record the case notes written by ${{ inputs.model }} (run ${{ github.run_id }})"
-          git pull --rebase origin main
-          git push origin HEAD:main
+          git pull --rebase origin "$GITHUB_REF_NAME"
+          git push origin "HEAD:$GITHUB_REF_NAME"
