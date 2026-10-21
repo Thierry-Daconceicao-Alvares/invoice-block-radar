@@ -34,8 +34,9 @@ Cause = Literal["waiting_for_goods", "likely_mismatch", "routine_check"]
 CAUSE_TEXT = {
     "waiting_for_goods": "The invoice arrived before the goods receipt was recorded.",
     "likely_mismatch": (
-        "The goods were received, and past blocks on this vendor's or this buyer's "
-        "orders have often needed the order or the invoice corrected."
+        "The goods were received; going by how this vendor's and this buyer's past "
+        "blocks ended, this one is among the likeliest to need the order or the "
+        "invoice corrected."
     ),
     "routine_check": (
         "The goods were received; blocks like this one usually end with a check "
@@ -191,7 +192,8 @@ Rules:
 - next_step: one sentence: who does what now, from `owner` and `action`.
 - If contact_vendor is true, draft a polite, short email to the vendor asking them to \
 check the invoice against purchase order `po_document` and to confirm the price and \
-quantity or send a corrected invoice or credit note. Sign it "Accounts Payable". Never \
+quantity or send a corrected invoice or credit note. Do not say the invoice is wrong: \
+nobody has found an error yet, the vendor is asked to check. Sign it "Accounts Payable". Never \
 mention internal rates, scores, the buyer's user id or how often the vendor or the buyer had blocks.
 - If contact_vendor is false, email_subject and email_body are null.
 """
