@@ -49,80 +49,102 @@ against $2.78 for the best teams, with 14% of invoices in exception
 
 Two parts, at two moments.
 
-**1. Before: the forecaster.** When an order line is created, a LightGBM model scores
-the risk that its invoice will be blocked, using only what is known at that moment:
-what is bought, the vendor, the buyer, the size of the order, and how their earlier,
-already-paid invoices went. SHAP says which inputs raised or lowered the risk. A buyer
-can confirm the price, quantity or delivery with the vendor before the invoice comes.
+**1. Before: the forecaster.** When an order line is created, it gets a risk score: the
+block rate of earlier invoices of the same vendor, for the same company and match type,
+counting only outcomes that were already known that day. A buyer can confirm the price,
+quantity or delivery with the vendor before the invoice comes. Two LightGBM models were
+built and compared with this rate month after month; the simple rate won every month
+(see [Results](#results)).
 
-![Order radar: the risk of a real order line and its SHAP reasons](docs/images/app-radar.png)
+![Order radar: the risk of a real order line and the history behind it](docs/images/app-radar.png)
 
 **2. After: the detective.** When an invoice blocks anyway, it reads the case and fills
 a case file:
 
 - **Rules in code decide the facts**: the likely cause (waiting for goods, likely
   mismatch, routine check), who should act, what to do, the money involved and whether
-  the vendor needs an email.
-- **A language model only writes**: a two-sentence summary, the next step and, when
-  needed, a draft email to the vendor (Mistral `ministral-14b-latest`).
-- **Code checks every note** before it is shown: no number that is not in the facts,
-  an email exactly when the rules ask for one, no internal rate shown to the vendor.
+  a vendor email should be drafted.
+- **A language model only writes**: a two-sentence summary, the next step and, for
+  likely mismatches, a draft email the buyer sends only if the check confirms a mismatch
+  (Mistral `ministral-14b-latest`).
+- **Code checks every note** before it is shown: no number outside the facts or written
+  in words; in the email, only the order number, value and date, no internal count, rate
+  or user id, no accusation, deadline or threat; an email exactly when the rules ask for
+  one. Tests try to get past these checks.
 
 ![Blocked queue: the pile of 15 October 2018 and a case file](docs/images/app-queue.png)
 
 ## Results
 
-Every model learns from January to July 2018, is tuned on August, and is scored once on
-September and October, months it never saw. Each is compared with what a team could do
-without it. Full figures: [docs/results/](docs/results/) and the
-[evidence page](https://invoice-block-radar.vercel.app/evidence).
+The outcome predicted is "invoice blocked within 60 days of the first invoice", and only
+lines invoiced at least 60 days before the log ends are scored, so no outcome is cut
+short by the extraction date. Methods are chosen on earlier months, learning only from
+outcomes a team would already have known, then scored once on September and October
+2018. Every run gives the same numbers. Full figures: [docs/results/](docs/results/) and
+the [evidence page](https://invoice-block-radar.vercel.app/evidence).
 
-**Forecaster**, 33,079 order lines of September-October, 27% of them blocked. If the
-team checks the riskiest 20% of new lines:
+**Forecaster.** Five candidates were compared on May, June, July and August, each month
+learning only from lines whose 60-day window had already closed. The live rate of the
+vendor (same company and match type) caught the most blocks every month. Then, on 24,025
+order lines of September-October, 24.7% of them blocked, if the team checks the riskiest
+20% of new lines:
 
 | Method | Future blocks caught | Precision | ROC AUC |
 |---|---:|---:|---:|
-| **LightGBM model** | **42%** | **56%** | **0.74** |
-| Vendor's block rate, Jan-Jul | 37% | 50% | 0.71 |
-| Rule on the match type | 20% | 27% | 0.50 |
-| Random pick | 20% | 27% | 0.51 |
+| **Vendor x company x match type, live rate (chosen)** | **40%** | **50%** | **0.70** |
+| Vendor, live rate | 40% | 50% | 0.70 |
+| LightGBM, order facts and history rates | 36% | 44% | 0.67 |
+| LightGBM, all inputs | 32% | 40% | 0.67 |
+| Buyer, live rate | 31% | 38% | 0.62 |
+| Random pick | 20% | 24% | 0.50 |
 
-Twice what a random check finds. The gain over the vendor's own history is real but
-moderate: part of a block depends on what the vendor will put on the invoice later,
-which nobody knows when the order is created.
+Twice what a random check finds, with a rule anyone can read.
 
-**Detective**, every block raised in September-October 2018 (9,883):
+**Detective**, every block raised in September-October 2018 (9,883). Of the 7,733 blocks
+raised after the goods arrived, 7.4% needed a correction and 91% were released with
+nothing corrected: those are the rates to beat.
 
-| The detective said | Blocks | What really happened |
-|---|---:|---|
-| Waiting for goods | 2,150 | 98% were only waiting for the goods receipt |
-| Routine check | 5,039 | 95% released with nothing corrected |
-| Likely mismatch | 2,694 | holds 65% of all the real corrections |
+| The detective said | Blocks | Released, nothing corrected | Really needed a correction |
+|---|---:|---:|---:|
+| Routine check | 5,039 | 95% | 3.8% |
+| Likely mismatch | 2,694 | 85% | 14.3% |
+| Waiting for goods | 2,150 | 2% (98% only waited for the goods receipt) | 0.8% |
 
-**Writer**: 30 of 30 notes written by Mistral passed every check (about 2 s per note).
-They were recorded by a [GitHub workflow](.github/workflows/record-notes.yml) and are
-replayed by the demo, which holds no API key.
+The "likely mismatch" pile is 35% of the blocks raised after the goods arrived and holds
+65% of the real corrections, 1.9 times its share. "Waiting for goods" is read from the
+missing goods receipt, the very fact it is checked against, so its 98% says little. Most
+"likely mismatch" blocks still end with nothing corrected, which is why the vendor email
+is a draft for the buyer, not something sent automatically.
+
+**Triage score.** Which blocked invoice to open first: three scores were compared on
+August, on the share of real corrections found in the first 20% of the pile. The average
+of the vendor's and the buyer's past correction rates won (72%, LightGBM 71%, vendor alone
+65%). On September-October it found 43% of the corrections in the first 20% (random: 21%);
+the vendor's history alone did a little better there (46%), shown as it came out.
+
+**Writer**: WRITER_LINE
 
 ## Decisions worth knowing
 
 - **A block is read from its release.** The log records 57,136 "Remove Payment Block"
   steps but only 124 "Set Payment Block": the ERP sets blocks on its own. The cause of a
   block is read from what happened between the invoice and the release.
-- **A first figure was wrong, and was corrected.** Blocked invoices looked paid two
-  weeks later than the others; compared within the same vendor, the gap is 3 to 4 days.
-  The rest came from vendors with longer payment terms.
+- **An independent review changed the results, for the better.** A first version of the
+  forecaster caught 42% of blocks with a LightGBM model. A review found that its history
+  counted some blocks before they were known, that it learned from recent lines whose
+  outcome was not known yet, that blocks still open at the end of the log were counted
+  as "not blocked", and that runs were not exactly reproducible. With all four fixed, the
+  machine-learning models fell behind a plain history rate, so the plain rate is used.
+- **A first delay figure was wrong.** Blocked invoices looked paid two weeks later than
+  the others; compared within the same vendor the gap is 3 to 4 days
+  ([overview.json](data/demo/overview.json), `payment_delay`). The rest came from vendors
+  with longer payment terms.
 - **A change made before the invoice is not a correction of the block.** Counting it
   inflated "real corrections" from 6% to 14%; the definition was fixed.
-- **No look into the future.** History features count only invoices settled before the
-  order line was created, and a dbt test recounts them; training, tuning and test
-  periods never overlap, also checked by a test. Vendor-typed dates (credit notes,
-  invoice dates) are left out of the triage: a note dated before a block may have
-  arrived after it.
-- **A model was rejected.** For triage, a LightGBM model scored 0.84 ROC AUC on August
-  and fell to 0.65 on September-October. A plain score (the vendor's and the buyer's
-  past correction rates) held at 0.72 and is the one in use.
-- **The first model memorised.** Given the raw vendor and buyer ids, the forecaster
-  learned them by heart and stopped after 25 trees. Their dated history replaced them.
+- **No look into the future.** History features count an outcome only from the moment it
+  was known, and a dbt test recounts them; training, tuning and test periods never
+  overlap, also checked by a test. Vendor-typed dates (credit notes, invoice dates) are
+  left out of the triage: a note dated before a block may have arrived after it.
 
 ## How it is built
 
@@ -131,7 +153,7 @@ flowchart LR
     xes["BPI Challenge 2019<br/>event log (XES, 728 MB)"] --> ingest["scripts/ingest.py<br/>stream to Parquet"]
     ingest --> dbt["dbt + DuckDB<br/>staging, marts, model tables<br/>33 data tests"]
     dbt --> pm["PM4Py<br/>process map, variants"]
-    dbt --> forecast["Forecaster<br/>LightGBM + SHAP"]
+    dbt --> forecast["Forecaster<br/>live history rate,<br/>LightGBM compared"]
     dbt --> detective["Detective<br/>rules + triage score"]
     detective --> writer["Writer<br/>Mistral, checked in code"]
     forecast --> api["FastAPI<br/>(Render)"]
@@ -145,11 +167,11 @@ flowchart LR
 | Ingestion | Python, lxml (streamed), Parquet |
 | Warehouse | DuckDB, dbt (staging, marts, model and case tables, a leak-free history macro) |
 | Process mining | PM4Py (directly-follows graph, variants) |
-| Forecaster | LightGBM, SHAP, scikit-learn |
+| Forecaster | rolling month-by-month comparison: live history rates against LightGBM models, scikit-learn metrics |
 | Detective | rules in Python, Pydantic, Mistral over HTTPS with a strict JSON schema |
 | API | FastAPI, served from small extracts (no event log needed) |
 | Interface | Next.js, React, ECharts |
-| Quality | 33 dbt data tests, 19 pytest tests, GitHub Actions (Python and web build) |
+| Quality | 33 dbt data tests (run locally on the full log), 27 pytest tests and the web build in GitHub Actions |
 
 ![Evidence page](docs/images/app-evidence.png)
 
@@ -184,7 +206,7 @@ set, a case with no recorded note is written live by Mistral and checked.
 scripts/ingest.py        XES event log to Parquet
 warehouse/               dbt project (DuckDB): models, macros, data tests
 analysis/process_map.py  PM4Py process maps and variants
-radar/forecast.py        the forecaster (LightGBM + SHAP) and its baselines
+radar/forecast.py        the forecaster: candidates, rolling check, single test
 radar/triage.py          triage of blocked invoices, the rejected model kept as evidence
 radar/detective.py       rules, case file, writers (Mistral, replay, template), checks
 radar/queue.py           the detective on Sep-Oct 2018 and the queue of 15 Oct 2018
@@ -202,8 +224,11 @@ docs/images/             charts and screenshots
   transformation, so euro figures show proportions, not real money.
 - The log never says why a block was set; causes are read from what happened next.
 - "Nothing corrected" means nothing was corrected in the ERP; someone may still have
-  phoned the vendor.
-- The forecaster is useful as a ranking for checks, not as a decision on its own.
+  phoned the vendor. 13% of those blocks were released by a batch job, not a person.
+- The 22% headline counts every order line of the log; the models score invoiced lines
+  only ("once this line is invoiced, will the invoice block?"), 25% of which blocked.
+- Blocks still open when the log ends are not in the detective's figures.
+- The scores are useful as a ranking for checks, not as a decision on their own.
 
 ## Data and licence
 
