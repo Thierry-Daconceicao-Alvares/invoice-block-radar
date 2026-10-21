@@ -1,0 +1,10 @@
+data/raw
+data/parquet
+data/*.duckdb*
+warehouse/target
+warehouse/logs
+.git
+.venv
+**/__pycache__
+web/node_modules
+web/.next
