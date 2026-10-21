@@ -2,8 +2,9 @@
 
     python -m radar.forecast
 
-The outcome is "blocked within 60 days of the invoice" (see ml_order_lines in
-the warehouse), so every outcome used here is fully observed.
+The outcome is "was the invoice blocked" (see ml_order_lines in the warehouse),
+scored on lines invoiced at least 60 days before the log ends. A line's outcome
+counts as known 60 days after its invoice at the latest.
 
 How the method is chosen, without ever looking at the test months:
   * Candidates: the live block rate of the vendor, of the vendor x company x
@@ -65,7 +66,13 @@ COUNTS = [f"{who}_known_before" for who in HISTORY]
 TARGET = "was_blocked"
 REVIEW_SHARE = 0.20  # the team checks the 20% riskiest new lines
 PRIOR_WEIGHT = 10  # a vendor with few known outcomes stays close to the average
-WINDOW = pd.Timedelta(days=60)  # block_window_days in warehouse/dbt_project.yml
+def _window_days() -> int:
+    """The window shared with the dbt project (read when training, not by the API)."""
+    import yaml
+
+    config = yaml.safe_load((ROOT / "warehouse" / "dbt_project.yml").read_text())
+    return int(config["vars"]["block_window_days"])
+
 FOLDS = ["2018-05-01", "2018-06-01", "2018-07-01", "2018-08-01"]
 TEST_START = pd.Timestamp("2018-09-01", tz="UTC")
 SEED = 7
@@ -181,8 +188,9 @@ def score_with(candidate: str, learn: pd.DataFrame, apply: pd.DataFrame) -> np.n
 
 
 def known_by(data: pd.DataFrame, moment: pd.Timestamp) -> pd.DataFrame:
-    """Lines whose 60-day window had closed by `moment`: all a team could learn from."""
-    return data[data["first_invoice_document_at"] + WINDOW < moment]
+    """Lines whose outcome the company knew by `moment` (60 days after the
+    invoice at the latest): all a team could learn from."""
+    return data[data["first_invoice_document_at"] + pd.Timedelta(days=_window_days()) < moment]
 
 
 def with_rates(data: pd.DataFrame, learn: pd.DataFrame) -> pd.DataFrame:
@@ -233,7 +241,8 @@ def main() -> None:
                 "rate": CANDIDATES[chosen] if isinstance(CANDIDATES[chosen], str) else None,
                 "prior": float(learn[TARGET].mean()),
                 "prior_weight": PRIOR_WEIGHT,
-                "reference_rate": float(y.mean()),
+                # the average a new line is compared with: known before the test months
+                "reference_rate": float(learn[TARGET].mean()),
                 "categories": booster.categories,
             },
             indent=1,
@@ -242,7 +251,7 @@ def main() -> None:
     )
 
     results = {
-        "outcome": "invoice blocked within 60 days of the first invoice document",
+        "outcome": "invoice blocked, on lines invoiced at least 60 days before the end of the log",
         "chosen": chosen,
         "chosen_on": "mean share of blocks caught in the riskiest 20%, May-Aug 2018",
         "rolling_check": {"months": folds, "mean_share_caught": mean_capture},

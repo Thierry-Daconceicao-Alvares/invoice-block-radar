@@ -1,5 +1,5 @@
 {
-  "outcome": "invoice blocked within 60 days of the first invoice document",
+  "outcome": "invoice blocked, on lines invoiced at least 60 days before the end of the log",
   "chosen": "vendor x company x match type, live rate",
   "chosen_on": "mean share of blocks caught in the riskiest 20%, May-Aug 2018",
   "rolling_check": {
@@ -9,34 +9,34 @@
         "scored": 20154,
         "scores": {
           "vendor x company x match type, live rate": {
-            "roc_auc": 0.677,
-            "pr_auc": 0.381,
-            "share_of_blocks_caught": 0.391,
-            "precision": 0.457
+            "roc_auc": 0.691,
+            "pr_auc": 0.428,
+            "share_of_blocks_caught": 0.376,
+            "precision": 0.492
           },
           "vendor, live rate": {
-            "roc_auc": 0.674,
-            "pr_auc": 0.377,
-            "share_of_blocks_caught": 0.388,
-            "precision": 0.454
+            "roc_auc": 0.687,
+            "pr_auc": 0.423,
+            "share_of_blocks_caught": 0.373,
+            "precision": 0.488
           },
           "buyer, live rate": {
-            "roc_auc": 0.624,
-            "pr_auc": 0.305,
-            "share_of_blocks_caught": 0.318,
-            "precision": 0.373
+            "roc_auc": 0.632,
+            "pr_auc": 0.356,
+            "share_of_blocks_caught": 0.323,
+            "precision": 0.423
           },
           "LightGBM, order facts and history rates": {
-            "roc_auc": 0.615,
-            "pr_auc": 0.345,
-            "share_of_blocks_caught": 0.313,
-            "precision": 0.367
+            "roc_auc": 0.624,
+            "pr_auc": 0.346,
+            "share_of_blocks_caught": 0.303,
+            "precision": 0.397
           },
           "LightGBM, all inputs": {
-            "roc_auc": 0.597,
-            "pr_auc": 0.311,
-            "share_of_blocks_caught": 0.295,
-            "precision": 0.346
+            "roc_auc": 0.608,
+            "pr_auc": 0.338,
+            "share_of_blocks_caught": 0.278,
+            "precision": 0.364
           }
         }
       },
@@ -45,34 +45,34 @@
         "scored": 19680,
         "scores": {
           "vendor x company x match type, live rate": {
-            "roc_auc": 0.695,
-            "pr_auc": 0.399,
-            "share_of_blocks_caught": 0.391,
-            "precision": 0.462
+            "roc_auc": 0.684,
+            "pr_auc": 0.412,
+            "share_of_blocks_caught": 0.369,
+            "precision": 0.478
           },
           "vendor, live rate": {
-            "roc_auc": 0.694,
-            "pr_auc": 0.397,
-            "share_of_blocks_caught": 0.387,
-            "precision": 0.458
+            "roc_auc": 0.684,
+            "pr_auc": 0.412,
+            "share_of_blocks_caught": 0.369,
+            "precision": 0.478
           },
           "buyer, live rate": {
-            "roc_auc": 0.61,
-            "pr_auc": 0.292,
-            "share_of_blocks_caught": 0.282,
-            "precision": 0.334
+            "roc_auc": 0.594,
+            "pr_auc": 0.308,
+            "share_of_blocks_caught": 0.267,
+            "precision": 0.346
           },
           "LightGBM, order facts and history rates": {
-            "roc_auc": 0.58,
-            "pr_auc": 0.294,
-            "share_of_blocks_caught": 0.278,
-            "precision": 0.329
+            "roc_auc": 0.623,
+            "pr_auc": 0.339,
+            "share_of_blocks_caught": 0.308,
+            "precision": 0.399
           },
           "LightGBM, all inputs": {
             "roc_auc": 0.601,
-            "pr_auc": 0.332,
-            "share_of_blocks_caught": 0.339,
-            "precision": 0.401
+            "pr_auc": 0.355,
+            "share_of_blocks_caught": 0.318,
+            "precision": 0.412
           }
         }
       },
@@ -81,34 +81,34 @@
         "scored": 18101,
         "scores": {
           "vendor x company x match type, live rate": {
-            "roc_auc": 0.661,
-            "pr_auc": 0.399,
-            "share_of_blocks_caught": 0.377,
-            "precision": 0.465
+            "roc_auc": 0.64,
+            "pr_auc": 0.429,
+            "share_of_blocks_caught": 0.37,
+            "precision": 0.528
           },
           "vendor, live rate": {
-            "roc_auc": 0.662,
-            "pr_auc": 0.399,
-            "share_of_blocks_caught": 0.376,
-            "precision": 0.464
+            "roc_auc": 0.64,
+            "pr_auc": 0.43,
+            "share_of_blocks_caught": 0.367,
+            "precision": 0.524
           },
           "buyer, live rate": {
-            "roc_auc": 0.568,
-            "pr_auc": 0.327,
-            "share_of_blocks_caught": 0.279,
-            "precision": 0.344
+            "roc_auc": 0.549,
+            "pr_auc": 0.354,
+            "share_of_blocks_caught": 0.253,
+            "precision": 0.361
           },
           "LightGBM, order facts and history rates": {
-            "roc_auc": 0.63,
-            "pr_auc": 0.356,
-            "share_of_blocks_caught": 0.325,
-            "precision": 0.401
+            "roc_auc": 0.629,
+            "pr_auc": 0.398,
+            "share_of_blocks_caught": 0.305,
+            "precision": 0.435
           },
           "LightGBM, all inputs": {
-            "roc_auc": 0.645,
-            "pr_auc": 0.383,
-            "share_of_blocks_caught": 0.328,
-            "precision": 0.404
+            "roc_auc": 0.631,
+            "pr_auc": 0.427,
+            "share_of_blocks_caught": 0.322,
+            "precision": 0.46
           }
         }
       },
@@ -117,86 +117,86 @@
         "scored": 16527,
         "scores": {
           "vendor x company x match type, live rate": {
-            "roc_auc": 0.586,
-            "pr_auc": 0.309,
-            "share_of_blocks_caught": 0.331,
-            "precision": 0.363
+            "roc_auc": 0.553,
+            "pr_auc": 0.343,
+            "share_of_blocks_caught": 0.273,
+            "precision": 0.362
           },
           "vendor, live rate": {
-            "roc_auc": 0.588,
-            "pr_auc": 0.313,
-            "share_of_blocks_caught": 0.329,
-            "precision": 0.361
+            "roc_auc": 0.555,
+            "pr_auc": 0.345,
+            "share_of_blocks_caught": 0.275,
+            "precision": 0.365
           },
           "buyer, live rate": {
-            "roc_auc": 0.552,
-            "pr_auc": 0.246,
-            "share_of_blocks_caught": 0.263,
-            "precision": 0.288
+            "roc_auc": 0.546,
+            "pr_auc": 0.286,
+            "share_of_blocks_caught": 0.226,
+            "precision": 0.3
           },
           "LightGBM, order facts and history rates": {
-            "roc_auc": 0.569,
-            "pr_auc": 0.245,
-            "share_of_blocks_caught": 0.253,
-            "precision": 0.277
+            "roc_auc": 0.53,
+            "pr_auc": 0.286,
+            "share_of_blocks_caught": 0.242,
+            "precision": 0.322
           },
           "LightGBM, all inputs": {
-            "roc_auc": 0.561,
-            "pr_auc": 0.257,
-            "share_of_blocks_caught": 0.219,
-            "precision": 0.241
+            "roc_auc": 0.543,
+            "pr_auc": 0.303,
+            "share_of_blocks_caught": 0.224,
+            "precision": 0.297
           }
         }
       }
     },
     "mean_share_caught": {
-      "vendor x company x match type, live rate": 0.372,
-      "vendor, live rate": 0.37,
-      "buyer, live rate": 0.285,
-      "LightGBM, order facts and history rates": 0.292,
-      "LightGBM, all inputs": 0.295
+      "vendor x company x match type, live rate": 0.347,
+      "vendor, live rate": 0.346,
+      "buyer, live rate": 0.267,
+      "LightGBM, order facts and history rates": 0.289,
+      "LightGBM, all inputs": 0.286
     }
   },
   "test": {
     "lines": 24025,
     "learned_from": 93624,
-    "block_rate": 0.247,
+    "block_rate": 0.285,
     "scores": {
       "vendor x company x match type, live rate": {
-        "roc_auc": 0.696,
-        "pr_auc": 0.433,
-        "share_of_blocks_caught": 0.401,
-        "precision": 0.495
+        "roc_auc": 0.686,
+        "pr_auc": 0.451,
+        "share_of_blocks_caught": 0.343,
+        "precision": 0.488
       },
       "vendor, live rate": {
-        "roc_auc": 0.695,
-        "pr_auc": 0.432,
-        "share_of_blocks_caught": 0.401,
-        "precision": 0.495
+        "roc_auc": 0.686,
+        "pr_auc": 0.451,
+        "share_of_blocks_caught": 0.344,
+        "precision": 0.489
       },
       "buyer, live rate": {
-        "roc_auc": 0.624,
-        "pr_auc": 0.343,
-        "share_of_blocks_caught": 0.308,
-        "precision": 0.38
+        "roc_auc": 0.591,
+        "pr_auc": 0.358,
+        "share_of_blocks_caught": 0.274,
+        "precision": 0.39
       },
       "LightGBM, order facts and history rates": {
-        "roc_auc": 0.673,
-        "pr_auc": 0.42,
-        "share_of_blocks_caught": 0.357,
-        "precision": 0.441
+        "roc_auc": 0.618,
+        "pr_auc": 0.377,
+        "share_of_blocks_caught": 0.301,
+        "precision": 0.429
       },
       "LightGBM, all inputs": {
-        "roc_auc": 0.666,
-        "pr_auc": 0.364,
-        "share_of_blocks_caught": 0.324,
-        "precision": 0.4
+        "roc_auc": 0.642,
+        "pr_auc": 0.381,
+        "share_of_blocks_caught": 0.3,
+        "precision": 0.427
       },
       "random pick": {
-        "roc_auc": 0.496,
-        "pr_auc": 0.246,
-        "share_of_blocks_caught": 0.197,
-        "precision": 0.243
+        "roc_auc": 0.498,
+        "pr_auc": 0.285,
+        "share_of_blocks_caught": 0.2,
+        "precision": 0.284
       }
     }
   },

@@ -171,25 +171,34 @@ def process_map(con) -> dict:
     return {"scope": "items whose payment was blocked", "nodes": nodes, "edges": edges}
 
 
+def block_window_days() -> int:
+    """The window shared with the dbt project, read from its configuration."""
+    import yaml
+
+    config = yaml.safe_load((ROOT / "warehouse" / "dbt_project.yml").read_text())
+    return int(config["vars"]["block_window_days"])
+
+
 def history(con) -> dict:
     """Counts as known on the snapshot day: earlier lines whose outcome was known,
     and how many of them had been blocked."""
     snapshot = SNAPSHOT.isoformat()
 
     # the same outcome and timing as the model's history features
-    # (warehouse/models/ml/ml_order_lines.sql): blocked within the window after
-    # the invoice, known at the first release or when the window closes
+    # (warehouse/models/ml/ml_order_lines.sql): blocked or not, known at the first
+    # release or when the window closes, whichever comes first
+    window = block_window_days()
     con.sql(
-        """
+        f"""
         create temp table known as
         select
             i.*,
             b.created_by,
-            coalesce(i.first_unblock_at <= i.first_invoice_document_at + to_days(60), false) as blocked,
-            case
-                when i.first_unblock_at <= i.first_invoice_document_at + to_days(60) then i.first_unblock_at
-                else i.first_invoice_document_at + to_days(60)
-            end as known_at
+            i.was_blocked as blocked,
+            least(
+                coalesce(i.first_unblock_at, i.first_invoice_document_at + to_days({window})),
+                i.first_invoice_document_at + to_days({window})
+            ) as known_at
         from fct_items i
         left join (
             select case_id, any_value(user_name) as created_by from stg_events

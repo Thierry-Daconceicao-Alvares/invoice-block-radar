@@ -1,9 +1,9 @@
 {
  "method": "vendor x company x match type, live rate",
  "rate": "pair_past_rate",
- "prior": 0.2524352730069213,
+ "prior": 0.2762325899342049,
  "prior_weight": 10,
- "reference_rate": 0.2468678459937565,
+ "reference_rate": 0.2762325899342049,
  "categories": {
   "item_category": [
    "3-way match, invoice after GR",
