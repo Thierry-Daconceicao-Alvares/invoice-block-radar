@@ -1,0 +1,20 @@
+version: 2
+
+models:
+  - name: ml_order_lines
+    description: >
+      Features known when a purchase order line is created, the blocked/not
+      blocked outcome, and a time-based period (train, validation, test).
+    config:
+      materialized: table
+    columns:
+      - name: case_id
+        data_tests: [unique, not_null]
+      - name: period
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: [train, validation, test]
+      - name: was_blocked
+        data_tests: [not_null]
