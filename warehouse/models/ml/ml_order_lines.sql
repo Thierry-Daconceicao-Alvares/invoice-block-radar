@@ -2,10 +2,11 @@
 -- with ONLY what is known when the purchase order line is created, the
 -- outcome to predict, and the period it belongs to.
 --
--- The outcome: was the line's invoice blocked within block_window_days of the
--- first invoice document? Only lines invoiced at least that long before the end
--- of the log are kept, so no outcome is cut short by the extraction date. The
--- model therefore answers: "once this line is invoiced, will the invoice block?"
+-- The outcome: was the line's invoice blocked? A block is only seen when it is
+-- released, so only lines invoiced at least block_window_days before the end of
+-- the log are kept: their block, if any, had that long to show up (a block still
+-- open at the end of the log is missed, a small residual). The model therefore
+-- answers: "once this line is invoiced, will the invoice block?"
 --
 -- Periods follow the calendar, never a random shuffle, so the model is always
 -- tested on orders created after the ones it learned from:
@@ -28,15 +29,13 @@ creator as (
 ),
 
 outcomes as (
-    -- every earlier invoiced line, with the same outcome as the one predicted
-    -- (blocked within the window) and the moment that outcome became known: the
-    -- first release if it was blocked in the window, the end of the window if not
+    -- every earlier invoiced line and the moment its outcome was known to the
+    -- company: the ERP blocks at invoice verification, so a block is visible from
+    -- then on. It is known as "blocked" at its first release, or when the window
+    -- closes with the block still open; a line with no block is known as "not
+    -- blocked" when the window closes.
     select
         *,
-        coalesce(
-            first_unblock_at <= first_invoice_document_at + to_days({{ var("block_window_days") }}),
-            false
-        ) as blocked_in_window,
         case
             when first_unblock_at <= first_invoice_document_at + to_days({{ var("block_window_days") }})
                 then first_unblock_at
@@ -46,14 +45,14 @@ outcomes as (
     where item_category like '3-way match%' and first_invoice_document_at is not null
 ),
 
-vendor_history as ({{ past_block_rate('lines', 'outcomes', 'vendor', 'vendor', settled_at='outcome_known_at', flag='blocked_in_window') }}),
+vendor_history as ({{ past_block_rate('lines', 'outcomes', 'vendor', 'vendor', settled_at='outcome_known_at', flag='was_blocked') }}),
 buyer_history as (
     {{ past_block_rate('(select lines.*, creator.created_by from lines left join creator using (case_id))',
                        '(select outcomes.*, creator.created_by from outcomes left join creator using (case_id))',
-                       'created_by', 'buyer', settled_at='outcome_known_at', flag='blocked_in_window') }}
+                       'created_by', 'buyer', settled_at='outcome_known_at', flag='was_blocked') }}
 ),
-area_history as ({{ past_block_rate('lines', 'outcomes', 'sub_spend_area', 'area', settled_at='outcome_known_at', flag='blocked_in_window') }}),
-pair_history as ({{ past_block_rate('lines', 'outcomes', "vendor || '|' || company || '|' || item_category", 'pair', settled_at='outcome_known_at', flag='blocked_in_window') }}),
+area_history as ({{ past_block_rate('lines', 'outcomes', 'sub_spend_area', 'area', settled_at='outcome_known_at', flag='was_blocked') }}),
+pair_history as ({{ past_block_rate('lines', 'outcomes', "vendor || '|' || company || '|' || item_category", 'pair', settled_at='outcome_known_at', flag='was_blocked') }}),
 
 document_size as (
     -- lines of the same purchase order created up to this line (later lines
@@ -78,7 +77,7 @@ select
         when lines.first_unblock_at <= lines.first_invoice_document_at + to_days({{ var("block_window_days") }})
             then lines.first_unblock_at
         else lines.first_invoice_document_at + to_days({{ var("block_window_days") }})
-    end as outcome_known_at,  -- not a feature: a line can only train a model after this
+    end as outcome_known_at,  -- not a feature: when the company knew the outcome
     case
         when lines.po_created_at < '2018-08-01' then 'train'
         when lines.po_created_at < '2018-09-01' then 'validation'
@@ -109,12 +108,9 @@ select
     area_history.area_blocked_before,
     pair_history.pair_known_before,
     pair_history.pair_blocked_before,
-    -- the outcome, observed in full for every line kept
-    coalesce(
-        lines.first_unblock_at <= lines.first_invoice_document_at
-            + to_days({{ var("block_window_days") }}),
-        false
-    ) as was_blocked
+    -- the outcome: was the invoice blocked (seen through its release, whenever
+    -- it came before the end of the log)
+    lines.was_blocked
 from lines
 left join creator using (case_id)
 left join document_size using (case_id)
