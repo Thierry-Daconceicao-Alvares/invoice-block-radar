@@ -10,6 +10,12 @@ vars:
   # this window is treated as a typo, flagged and kept out of any duration.
   plausible_from: "2017-01-01"
   plausible_to: "2019-12-31"
+  # The last events of the log are recorded on 18 January 2019. A line counts as
+  # blocked if its invoice was blocked (and released) within this many days, and
+  # only lines invoiced at least that long before the end of the log are scored,
+  # so every outcome used by the models is fully observed.
+  block_window_days: 60
+  last_observed_invoice: "2018-11-19"
 
 models:
   invoice_block_radar:

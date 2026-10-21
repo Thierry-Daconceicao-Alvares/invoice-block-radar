@@ -91,9 +91,9 @@ buyer_history as (
 select
     cases.* exclude (first_unblock_at),
     cases.first_unblock_at as actual_released_at,
-    vendor_history.vendor_paid_before as vendor_blocks_before,
+    vendor_history.vendor_known_before as vendor_blocks_before,
     vendor_history.vendor_blocked_before as vendor_corrections_before,
-    buyer_history.buyer_paid_before as buyer_blocks_before,
+    buyer_history.buyer_known_before as buyer_blocks_before,
     buyer_history.buyer_blocked_before as buyer_corrections_before
 from cases
 left join vendor_history using (case_id)

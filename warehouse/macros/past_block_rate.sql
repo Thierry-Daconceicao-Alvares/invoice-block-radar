@@ -1,22 +1,20 @@
 {#
   For every row of `lines`, what was already known about `key` (a vendor, a
-  buyer...) at `lines.<at>`: how many earlier cases had settled, and for how
-  many of them `flag` was true. Only outcomes settled strictly before that
-  moment are counted, so the feature never peeks into the future.
-
-  Defaults fit the order-time model: a line is settled when its invoice is
-  paid (first_cleared_at), and the flag is whether it was blocked.
+  buyer...) at `lines.<at>`: how many earlier cases had a known outcome, and for
+  how many of them `flag` was true. A case counts only from `settled_at`, the
+  moment its outcome became known, and only if that is strictly before `at`,
+  so the feature never peeks into the future.
 #}
-{% macro past_block_rate(lines, outcomes, key, prefix, at='po_created_at', settled_at='first_cleared_at', flag='was_blocked') %}
-    select case_id, {{ prefix }}_paid_before, {{ prefix }}_blocked_before
+{% macro past_block_rate(lines, outcomes, key, prefix, settled_at, flag, at='po_created_at') %}
+    select case_id, {{ prefix }}_known_before, {{ prefix }}_blocked_before
     from (
         select
             case_id,
             is_query,
-            sum(paid) over w as {{ prefix }}_paid_before,
+            sum(known) over w as {{ prefix }}_known_before,
             sum(blocked) over w as {{ prefix }}_blocked_before
         from (
-            select {{ key }} as k, {{ at }} as t, case_id, 1 as is_query, 0 as paid, 0 as blocked
+            select {{ key }} as k, {{ at }} as t, case_id, 1 as is_query, 0 as known, 0 as blocked
             from {{ lines }}
             union all
             select {{ key }}, {{ settled_at }}, null, 0, 1, ({{ flag }})::int
