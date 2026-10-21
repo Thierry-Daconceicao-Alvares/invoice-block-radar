@@ -3,11 +3,12 @@
   "notes": 30,
   "passed_all_checks": 30,
   "failures": [],
-  "median_seconds": 2.21,
+  "median_seconds": 2.71,
   "checks": [
-    "no number outside the facts",
-    "vendor email present exactly when the rules ask for one",
-    "no internal rate (%) in the vendor email",
+    "no number outside the facts, and none written in words",
+    "a vendor email exactly when the rules ask for one",
+    "in the email, only the order number, value and date: no internal count, rate or user id",
+    "no accusation, deadline or threat in the email",
     "summary under 400 characters"
   ]
 }
