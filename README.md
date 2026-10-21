@@ -122,7 +122,11 @@ of the vendor's and the buyer's past correction rates won (72%, LightGBM 71%, ve
 65%). On September-October it found 43% of the corrections in the first 20% (random: 21%);
 the vendor's history alone did a little better there (46%), shown as it came out.
 
-**Writer**: WRITER_LINE
+**Writer**: 30 of 30 notes written by Mistral passed every check in code (about 3 s per
+note). These checks keep a note inside the facts and the rules; they do not prove the
+wording is good. The notes were recorded by a
+[GitHub workflow](.github/workflows/record-notes.yml) and are replayed by the demo, which
+holds no API key.
 
 ## Decisions worth knowing
 
