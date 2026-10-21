@@ -53,8 +53,8 @@ Two parts, at two moments.
 block rate of earlier invoices of the same vendor, for the same company and match type,
 counting only outcomes that were already known that day. A buyer can confirm the price,
 quantity or delivery with the vendor before the invoice comes. Two LightGBM models were
-built and compared with this rate month after month; the simple rate won every month
-(see [Results](#results)).
+built and compared with this rate month after month; the simple rate beat them every
+month (see [Results](#results)).
 
 ![Order radar: the risk of a real order line and the history behind it](docs/images/app-radar.png)
 
@@ -76,29 +76,30 @@ a case file:
 
 ## Results
 
-The outcome predicted is "invoice blocked within 60 days of the first invoice", and only
-lines invoiced at least 60 days before the log ends are scored, so no outcome is cut
-short by the extraction date. Methods are chosen on earlier months, learning only from
-outcomes a team would already have known, then scored once on September and October
-2018. Every run gives the same numbers. Full figures: [docs/results/](docs/results/) and
-the [evidence page](https://invoice-block-radar.vercel.app/evidence).
+Only lines invoiced at least 60 days before the log ends are scored, so a block had time
+to show up. Methods are chosen on earlier months, learning only from outcomes the company
+already knew (a block at its release, or 60 days after the invoice at the latest), then
+scored once on September and October 2018. Every run gives the same numbers. Full
+figures: [docs/results/](docs/results/) and the
+[evidence page](https://invoice-block-radar.vercel.app/evidence).
 
-**Forecaster.** Five candidates were compared on May, June, July and August, each month
-learning only from lines whose 60-day window had already closed. The live rate of the
-vendor (same company and match type) caught the most blocks every month. Then, on 24,025
-order lines of September-October, 24.7% of them blocked, if the team checks the riskiest
-20% of new lines:
+**Forecaster.** Five candidates were compared on May, June, July and August. The live rate
+of the vendor (same company and match type) came out on top on average, tied with the
+vendor's rate alone (within half a point every month) and ahead of both LightGBM models
+every month. Then, on 24,025 order lines of September-October, 28.5% of them blocked, if
+the team checks the riskiest 20% of new lines:
 
 | Method | Future blocks caught | Precision | ROC AUC |
 |---|---:|---:|---:|
-| **Vendor x company x match type, live rate (chosen)** | **40%** | **50%** | **0.70** |
-| Vendor, live rate | 40% | 50% | 0.70 |
-| LightGBM, order facts and history rates | 36% | 44% | 0.67 |
-| LightGBM, all inputs | 32% | 40% | 0.67 |
-| Buyer, live rate | 31% | 38% | 0.62 |
-| Random pick | 20% | 24% | 0.50 |
+| **Vendor x company x match type, live rate (chosen)** | **34%** | **49%** | **0.69** |
+| Vendor, live rate | 34% | 49% | 0.69 |
+| LightGBM, order facts and history rates | 30% | 43% | 0.62 |
+| LightGBM, all inputs | 30% | 43% | 0.64 |
+| Buyer, live rate | 27% | 39% | 0.59 |
+| Random pick | 20% | 28% | 0.50 |
 
-Twice what a random check finds, with a rule anyone can read.
+1.7 times what a random check finds, with a rule anyone can read. A useful ranking for
+checks, not a decision on its own.
 
 **Detective**, every block raised in September-October 2018 (9,883). Of the 7,733 blocks
 raised after the goods arrived, 7.4% needed a correction and 91% were released with
@@ -106,21 +107,22 @@ nothing corrected: those are the rates to beat.
 
 | The detective said | Blocks | Released, nothing corrected | Really needed a correction |
 |---|---:|---:|---:|
-| Routine check | 5,039 | 95% | 3.8% |
-| Likely mismatch | 2,694 | 85% | 14.3% |
+| Routine check | 5,048 | 95% | 3.8% |
+| Likely mismatch | 2,685 | 85% | 14.2% |
 | Waiting for goods | 2,150 | 2% (98% only waited for the goods receipt) | 0.8% |
 
 The "likely mismatch" pile is 35% of the blocks raised after the goods arrived and holds
-65% of the real corrections, 1.9 times its share. "Waiting for goods" is read from the
+64% of the real corrections, 1.9 times its share. "Waiting for goods" is read from the
 missing goods receipt, the very fact it is checked against, so its 98% says little. Most
 "likely mismatch" blocks still end with nothing corrected, which is why the vendor email
 is a draft for the buyer, not something sent automatically.
 
 **Triage score.** Which blocked invoice to open first: three scores were compared on
-August, on the share of real corrections found in the first 20% of the pile. The average
-of the vendor's and the buyer's past correction rates won (72%, LightGBM 71%, vendor alone
-65%). On September-October it found 43% of the corrections in the first 20% (random: 21%);
-the vendor's history alone did a little better there (46%), shown as it came out.
+August, each learning only from blocks already released, on the share of real corrections
+found in the first 20% of the pile. The average of the vendor's and the buyer's past
+correction rates won (73%, against 65% for the vendor alone and 53% for LightGBM). On
+September-October it found 41% of the corrections in the first 20% (random: 21%); the
+vendor's history alone did better there (46%), shown as it came out.
 
 **Writer**: 30 of 30 notes written by Mistral passed every check in code (about 3 s per
 note). These checks keep a note inside the facts and the rules; they do not prove the
@@ -137,8 +139,10 @@ holds no API key.
   forecaster caught 42% of blocks with a LightGBM model. A review found that its history
   counted some blocks before they were known, that it learned from recent lines whose
   outcome was not known yet, that blocks still open at the end of the log were counted
-  as "not blocked", and that runs were not exactly reproducible. With all four fixed, the
-  machine-learning models fell behind a plain history rate, so the plain rate is used.
+  as "not blocked", and that runs were not exactly reproducible. A second review caught
+  that a first fix still labelled the longest blocks as "not blocked". With everything
+  fixed, the machine-learning models fell behind a plain history rate, so the plain rate
+  is used, and the figure is 34%, not 42%.
 - **A first delay figure was wrong.** Blocked invoices looked paid two weeks later than
   the others; compared within the same vendor the gap is 3 to 4 days
   ([overview.json](data/demo/overview.json), `payment_delay`). The rest came from vendors
@@ -146,8 +150,9 @@ holds no API key.
 - **A change made before the invoice is not a correction of the block.** Counting it
   inflated "real corrections" from 6% to 14%; the definition was fixed.
 - **No look into the future.** History features count an outcome only from the moment it
-  was known, and a dbt test recounts them; training, tuning and test periods never
-  overlap, also checked by a test. Vendor-typed dates (credit notes, invoice dates) are
+  was known, and a dbt consistency test recounts them with a separate query; training,
+  tuning and test periods never overlap, also checked by a test (both run locally on the
+  full log). Vendor-typed dates (credit notes, invoice dates) are
   left out of the triage: a note dated before a block may have arrived after it.
 
 ## How it is built
@@ -175,7 +180,7 @@ flowchart LR
 | Detective | rules in Python, Pydantic, Mistral over HTTPS with a strict JSON schema |
 | API | FastAPI, served from small extracts (no event log needed) |
 | Interface | Next.js, React, ECharts |
-| Quality | 33 dbt data tests (run locally on the full log), 27 pytest tests and the web build in GitHub Actions |
+| Quality | 33 dbt data tests (run locally on the full log), 31 pytest tests and the web build in GitHub Actions |
 
 ![Evidence page](docs/images/app-evidence.png)
 
@@ -230,7 +235,11 @@ docs/images/             charts and screenshots
 - "Nothing corrected" means nothing was corrected in the ERP; someone may still have
   phoned the vendor. 13% of those blocks were released by a batch job, not a person.
 - The 22% headline counts every order line of the log; the models score invoiced lines
-  only ("once this line is invoiced, will the invoice block?"), 25% of which blocked.
+  only ("once this line is invoiced, will the invoice block?").
+- Test lines are those invoiced by 19 November 2018, 60 days before the log ends. That
+  drops 11% of September and 40% of October invoiced lines, and it is a choice a team
+  could not make at order time: the test set leans toward lines invoiced quickly.
+- A block still open when the log ends (released after 18 January 2019) is not seen.
 - Blocks still open when the log ends are not in the detective's figures.
 - The scores are useful as a ranking for checks, not as a decision on their own.
 
