@@ -1,0 +1,21 @@
+name: invoice_block_radar
+version: "1.0.0"
+profile: invoice_block_radar
+model-paths: ["models"]
+test-paths: ["tests"]
+clean-targets: ["target", "dbt_packages"]
+
+vars:
+  # Purchase orders in the log were created in 2018. A vendor-entered date outside
+  # this window is treated as a typo, flagged and kept out of any duration.
+  plausible_from: "2017-01-01"
+  plausible_to: "2019-12-31"
+
+models:
+  invoice_block_radar:
+    staging:
+      +materialized: table
+    intermediate:
+      +materialized: view
+    marts:
+      +materialized: table

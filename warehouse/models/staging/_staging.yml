@@ -1,0 +1,37 @@
+version: 2
+
+models:
+  - name: stg_items
+    description: Purchase order items with readable column names.
+    columns:
+      - name: case_id
+        description: Purchase document number and item number, e.g. 4507000000_00010.
+        data_tests: [unique, not_null]
+      - name: item_category
+        description: How the invoice is matched before payment.
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values:
+                  - "3-way match, invoice before GR"
+                  - "3-way match, invoice after GR"
+                  - "2-way match"
+                  - "Consignment"
+      - name: vendor
+        data_tests: [not_null]
+
+  - name: stg_events
+    description: Every recorded step, with a flag on dates outside the plausible window.
+    columns:
+      - name: case_id
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('stg_items')
+                field: case_id
+      - name: activity
+        data_tests: [not_null]
+      - name: occurred_at
+        data_tests: [not_null]

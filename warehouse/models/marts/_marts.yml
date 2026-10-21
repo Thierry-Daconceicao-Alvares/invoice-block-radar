@@ -1,0 +1,14 @@
+version: 2
+
+models:
+  - name: fct_items
+    description: One row per purchase order item with its invoice outcome.
+    columns:
+      - name: case_id
+        data_tests: [unique, not_null]
+      - name: po_created_at
+        description: Every item has exactly one creation step in the log.
+        data_tests: [not_null]
+      - name: was_blocked
+        description: True when the item's invoice had at least one payment block removed.
+        data_tests: [not_null]

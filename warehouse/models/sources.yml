@@ -1,0 +1,12 @@
+version: 2
+
+sources:
+  - name: bpi2019
+    description: Parquet tables written by scripts/ingest.py from BPI_Challenge_2019.xes.
+    meta:
+      external_location: "{{ env_var('PARQUET_DIR', '../data/parquet') }}/{name}.parquet"
+    tables:
+      - name: items
+        description: One row per purchase order item (the case of the event log).
+      - name: events
+        description: One row per recorded step of a purchase order item.
