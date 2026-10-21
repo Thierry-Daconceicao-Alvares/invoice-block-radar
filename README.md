@@ -70,7 +70,8 @@ a case file:
 - **Code checks every note** before it is shown: no number outside the facts or written
   in words; in the email, only the order number, value and date, no internal count, rate
   or user id, no accusation, deadline or threat; an email exactly when the rules ask for
-  one. Tests try to get past these checks.
+  one. Tests try to get past these checks. They are a floor, not a proof that the wording
+  is safe: a person still reads the note before anything is sent.
 
 ![Blocked queue: the pile of 15 October 2018 and a case file](docs/images/app-queue.png)
 
@@ -240,6 +241,8 @@ docs/images/             charts and screenshots
   drops 11% of September and 40% of October invoiced lines, and it is a choice a team
   could not make at order time: the test set leans toward lines invoiced quickly.
 - A block still open when the log ends (released after 18 January 2019) is not seen.
+- A block released after day 60 counts as known from day 60. For about 1.5% of all
+  blocks, a new invoice was recorded after day 60, so the block may have started later.
 - Blocks still open when the log ends are not in the detective's figures.
 - The scores are useful as a ranking for checks, not as a decision on their own.
 
